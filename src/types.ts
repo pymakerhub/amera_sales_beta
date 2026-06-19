@@ -1,6 +1,9 @@
 export type Role = 'admin' | 'team_leader' | 'sales_rep';
 
 export type SaleStatus = 'Confirmed' | 'QC Open' | 'Cancelled' | 'Pending' | 'Not claimable';
+export type SaleType = 'Neutral' | 'SpeedUp' | 'ContentUp' | 'LayerUp';
+export type FiberPhase = 'None' | 'NVM / RVM Fiber Neu';
+export type ConnectionType = 'None' | 'NK' | 'GK';
 
 export type User = {
   id: string;
@@ -16,7 +19,7 @@ export type Team = {
   id: string;
   name: string;
   area: string;
-  monthlyGoal: number;
+  monthlyPointGoal: number;
   leaderIds: string[];
 };
 
@@ -27,6 +30,7 @@ export type SalesRep = {
   role: 'Team Leader' | 'Sales Rep';
   active: boolean;
   joined: string;
+  monthlyPointBudget: number;
 };
 
 export type SaleOrder = {
@@ -36,12 +40,14 @@ export type SaleOrder = {
   teamId: string;
   customerLabel: string;
   address: string;
-  project: string;
   area: string;
   product: string;
+  saleType: SaleType;
+  connectionType: ConnectionType;
+  fiberPhase: FiberPhase;
+  points: number;
   status: SaleStatus;
   claimable: boolean;
-  contactedAddresses: number;
   comment: string;
 };
 
@@ -51,6 +57,6 @@ export type Filters = {
   teamId: string;
   repId: string;
   status: string;
-  project: string;
+  saleType: string;
   search: string;
 };

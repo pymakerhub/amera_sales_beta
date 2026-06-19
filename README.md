@@ -17,13 +17,32 @@ Test users:
 ## What It Includes
 
 - Mock admin login
-- Main KPI dashboard with filters
+- Main KPI dashboard with Amera Points, sales, budgets, and filters
 - My Sales page with future sales-rep scoping
 - Team Leader page with future team-leader scoping
 - Admin All Sales table with search and export placeholder
-- Hall of Fame leaderboards by day, week, month, year, and all time
+- Hall of Fame leaderboards by yesterday, current day, week, month, year, and all time
 - Current App Overview explaining the old PHP app concepts reused
-- Dummy teams, reps, projects, statuses, orders, goals, comments, and addresses
+- Dummy teams, reps, statuses, orders, point budgets, comments, and addresses
+
+## Amera-Point System
+
+Competitions and leaderboards are measured by Amera Points:
+
+| Item | Points |
+| --- | ---: |
+| Sale | 1 |
+| Neutral | 2 |
+| SpeedUp | 2 |
+| ContentUp | 3 |
+| LayerUp | 5 |
+| NK | +3 |
+| GK | +5 |
+| NVM / RVM Fiber Neu | +5 |
+
+The beta includes point examples such as VVM NK without UP = 5 points, VVM NK with SpeedUp = 7 points, NVM NK = 10 points, NVM Fiber Neu Neutral = 6 points, and NVM GK NK Fiber Neu = 13 points.
+
+Leaderboard rep names are shortened to first name plus last initial for privacy.
 
 ## Run Locally
 

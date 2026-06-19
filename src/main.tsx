@@ -1,16 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { orders, projectsList, reps, statuses, teams, users } from './data/mockData';
+import { orders, pointRules, reps, saleTypes, statuses, teams, users } from './data/mockData';
 import { Filters, SaleOrder, User } from './types';
 import {
+  allTimeHighs,
   applyFilters,
-  confirmedCount,
   getMetrics,
   initialFilters,
   ordersInPeriod,
+  pointTotal,
   rankReps,
   rankTeams,
   repName,
+  shortRepName,
   teamName,
   visibleOrdersForUser,
 } from './utils/metrics';
@@ -152,21 +154,32 @@ function Dashboard({ user }: { user: User }) {
   const rankedTeams = rankTeams(filtered, teams).slice(0, 4);
 
   return (
-    <PageSection title="Main Dashboard" subtitle="All beta users are admins, so this view currently includes every dummy team and sales rep.">
+    <PageSection title="Main Dashboard" subtitle="All beta users are admins. Performance is now measured by sales volume and Amera Points.">
       <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} />
       <div className="kpi-grid">
-        <Kpi label="Total Sales" value={metrics.total} />
-        <Kpi label="Confirmed Sales" value={metrics.confirmed} tone="good" />
+        <Kpi label="Amera Points" value={metrics.points} tone="good" />
+        <Kpi label="Total Sales" value={metrics.totalSales} />
+        <Kpi label="Claimable Sales" value={metrics.claimableSales} />
+        <Kpi label="Avg Points / Sale" value={metrics.averagePoints} />
         <Kpi label="Cancelled" value={metrics.cancelled} tone="bad" />
         <Kpi label="QC Open" value={metrics.qcOpen} tone="warn" />
-        <Kpi label="Net Sales" value={metrics.net} />
-        <Kpi label="Take Rate" value={`${metrics.takeRate}%`} />
       </div>
       <div className="split">
-        <Card title="Team Progress">
+        <Card title="Team Point Progress">
           {rankedTeams.map((team) => (
-            <ProgressRow key={team.id} label={team.name} value={team.confirmed} max={team.goal} detail={`${team.confirmed}/${team.goal} confirmed`} />
+            <ProgressRow key={team.id} label={team.name} value={team.points} max={team.goal} detail={`${team.points}/${team.goal} points`} />
           ))}
+        </Card>
+        <Card title="Amera-Point System">
+          <div className="rules-grid">
+            {pointRules.map((rule) => (
+              <div key={rule.label}>
+                <span>{rule.label}</span>
+                <strong>{rule.points > 0 ? `+${rule.points}` : rule.points}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="card-note">Examples: VVM NK without UP = 5 points. VVM NK with SpeedUp = 7. NVM NK = 10. NVM Fiber Neu Neutral = 6. NVM GK NK Fiber Neu = 13.</p>
         </Card>
         <Card title="Status Mix">
           {statuses.map((status) => (
@@ -180,9 +193,14 @@ function Dashboard({ user }: { user: User }) {
 
 function MySales({ user }: { user: User }) {
   const [repId, setRepId] = useState(reps[0].id);
-  const scoped = user.role === 'sales_rep' && user.repId ? orders.filter((order) => order.repId === user.repId) : orders.filter((order) => order.repId === repId);
+  const activeRepId = user.role === 'sales_rep' && user.repId ? user.repId : repId;
+  const activeRep = reps.find((rep) => rep.id === activeRepId) ?? reps[0];
+  const scoped = orders.filter((order) => order.repId === activeRepId);
+  const repRanking = rankReps(ordersInPeriod(orders, 'month'), reps);
+  const rank = repRanking.findIndex((row) => row.id === activeRepId) + 1;
+  const points = pointTotal(scoped.filter((order) => order.date >= '2026-06-01'));
   return (
-    <PageSection title="My Sales" subtitle="Future sales reps will only see their own rows. Admins can preview any rep during beta testing.">
+    <PageSection title="My Sales" subtitle="Future sales reps will only see their own sales, point budget, and comparison against other reps. Admins can preview any rep during beta testing.">
       {user.role === 'admin' && (
         <div className="toolbar">
           <label>
@@ -195,8 +213,14 @@ function MySales({ user }: { user: User }) {
               ))}
             </select>
           </label>
+          <Kpi label="Monthly Points" value={points} compact tone="good" />
+          <Kpi label="Point Budget" value={activeRep.monthlyPointBudget} compact />
+          <Kpi label="Rep Rank" value={`#${rank || '-'}`} compact />
         </div>
       )}
+      <Card title={`${activeRep.name} Budget Progress`}>
+        <ProgressRow label="Monthly Amera Points" value={points} max={activeRep.monthlyPointBudget} detail={`${points}/${activeRep.monthlyPointBudget} points`} />
+      </Card>
       <OrdersTable orders={scoped} />
     </PageSection>
   );
@@ -225,8 +249,8 @@ function TeamLeader({ user }: { user: User }) {
               ))}
             </select>
           </label>
-          <Kpi label="Weekly Confirmed" value={confirmedCount(week)} compact />
-          <Kpi label="Monthly Confirmed" value={confirmedCount(month)} compact />
+          <Kpi label="Weekly Points" value={pointTotal(week)} compact tone="good" />
+          <Kpi label="Monthly Points" value={pointTotal(month)} compact tone="good" />
         </div>
       )}
       <div className="table-wrap">
@@ -235,11 +259,14 @@ function TeamLeader({ user }: { user: User }) {
             <tr>
               <th>Rank</th>
               <th>Rep</th>
+              <th>Points</th>
+              <th>Budget</th>
+              <th>Progress</th>
               <th>Sales</th>
               <th>Cancellations</th>
               <th>QC Open</th>
-              <th>Weekly total</th>
-              <th>Monthly total</th>
+              <th>Weekly points</th>
+              <th>Monthly points</th>
             </tr>
           </thead>
           <tbody>
@@ -247,11 +274,14 @@ function TeamLeader({ user }: { user: User }) {
               <tr key={row.id}>
                 <td>#{index + 1}</td>
                 <td>{row.name}</td>
+                <td>{row.points}</td>
+                <td>{row.budget}</td>
+                <td>{row.budgetProgress}%</td>
                 <td>{row.confirmed}</td>
                 <td>{row.cancellations}</td>
                 <td>{row.qcOpen}</td>
-                <td>{confirmedCount(week.filter((order) => order.repId === row.id))}</td>
-                <td>{confirmedCount(month.filter((order) => order.repId === row.id))}</td>
+                <td>{pointTotal(week.filter((order) => order.repId === row.id))}</td>
+                <td>{pointTotal(month.filter((order) => order.repId === row.id))}</td>
               </tr>
             ))}
           </tbody>
@@ -265,7 +295,7 @@ function AdminSales({ user }: { user: User }) {
   const [filters, setFilters] = useState<Filters>({ ...initialFilters, search: '' });
   const filtered = applyFilters(visibleOrdersForUser(orders, user), filters);
   return (
-    <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order in the beta.">
+    <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order, point value, sale type, and claimable status in the beta.">
       <FiltersBar filters={filters} setFilters={setFilters} includeSearch />
       <div className="toolbar right">
         <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
@@ -282,19 +312,33 @@ function Leaderboard({ user }: { user: User }) {
   const visible = ordersInPeriod(visibleOrdersForUser(orders, user), period);
   const repRanking = rankReps(visible, reps).slice(0, 10);
   const teamRanking = rankTeams(visible, teams);
+  const records = allTimeHighs(visibleOrdersForUser(orders, user), reps, teams);
   return (
-    <PageSection title="Leaderboard / Hall of Fame" subtitle="Recreates the old day, week, month, year and all-time ranking concept for teams and individuals.">
+    <PageSection title="Leaderboard / Hall of Fame" subtitle="Competitions and leaderboard positions are measured by Amera Points. Public rep names show first name and last initial only.">
       <div className="period-tabs">
-        {['day', 'week', 'month', 'year', 'all'].map((item) => (
+        {['yesterday', 'current', 'week', 'month', 'year', 'all'].map((item) => (
           <button key={item} className={period === item ? 'active' : ''} onClick={() => setPeriod(item)}>
             {item === 'all' ? 'All time' : item}
           </button>
         ))}
       </div>
       <div className="split">
-        <RankingCard title="Individuals" rows={repRanking.map((row) => ({ label: row.name, value: row.confirmed, meta: teamName(teams, row.teamId) }))} />
-        <RankingCard title="Teams" rows={teamRanking.map((row) => ({ label: row.name, value: row.confirmed, meta: `${row.qcOpen} QC open` }))} />
+        <RankingCard title="Individuals" rows={repRanking.map((row) => ({ label: shortRepName(row.name), value: row.points, meta: `${teamName(teams, row.teamId)} · ${row.confirmed} sales` }))} />
+        <RankingCard title="Teams" rows={teamRanking.map((row) => ({ label: row.name, value: row.points, meta: `${row.confirmed} sales · ${row.qcOpen} QC open` }))} />
       </div>
+      <Card title="All-Time High Records">
+        <div className="records-grid">
+          {records.map((record) => (
+            <div key={record.period} className="record-tile">
+              <span>{record.label}</span>
+              <strong>{record.topRep ? shortRepName(record.topRep.name) : '-'}</strong>
+              <small>{record.topRep?.points ?? 0} individual points</small>
+              <strong>{record.topTeam?.name ?? '-'}</strong>
+              <small>{record.topTeam?.points ?? 0} team points</small>
+            </div>
+          ))}
+        </div>
+      </Card>
     </PageSection>
   );
 }
@@ -303,7 +347,7 @@ function Overview() {
   const modules = [
     ['Employee management', 'Active reps, roles, join dates, and all-time high ownership.'],
     ['Team assignment', 'Reps grouped into teams for reporting and leader views.'],
-    ['Control panel', 'Monthly goals, progress, sales, and predicted month-end pace.'],
+    ['Control panel', 'Monthly point budgets, progress, sales, and predicted month-end pace.'],
     ['Reports', 'Seven-day team reporting with daily sales and absence tracking.'],
     ['Monthly report', 'Employee calendar view with sales by team per day.'],
     ['Hall of Fame', 'Day, week, month, year, and all-time rankings.'],
@@ -369,12 +413,12 @@ function FiltersBar({ filters, setFilters, includeSearch }: { filters: Filters; 
         </select>
       </label>
       <label>
-        Project
-        <select value={filters.project} onChange={(event) => update('project', event.target.value)}>
-          <option value="all">All projects</option>
-          {projectsList.map((project) => (
-            <option key={project} value={project}>
-              {project}
+        Sale type
+        <select value={filters.saleType} onChange={(event) => update('saleType', event.target.value)}>
+          <option value="all">All sale types</option>
+          {saleTypes.map((saleType) => (
+            <option key={saleType} value={saleType}>
+              {saleType}
             </option>
           ))}
         </select>
@@ -399,7 +443,10 @@ function OrdersTable({ orders: tableOrders, showRep = false, showTeam = false }:
             {showRep && <th>Rep</th>}
             {showTeam && <th>Team</th>}
             <th>Customer / address</th>
-            <th>Project</th>
+            <th>Sale type</th>
+            <th>NK/GK</th>
+            <th>Fiber phase</th>
+            <th>Points</th>
             <th>Status</th>
             <th>Product</th>
             <th>Comment</th>
@@ -416,7 +463,12 @@ function OrdersTable({ orders: tableOrders, showRep = false, showTeam = false }:
                 <strong>{order.customerLabel}</strong>
                 <span>{order.address}</span>
               </td>
-              <td>{order.project}</td>
+              <td>{order.saleType}</td>
+              <td>{order.connectionType}</td>
+              <td>{order.fiberPhase}</td>
+              <td>
+                <strong>{order.points}</strong>
+              </td>
               <td>
                 <Badge status={order.status} />
               </td>

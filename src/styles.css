@@ -322,6 +322,41 @@ select {
   margin-bottom: 14px;
 }
 
+.rules-grid,
+.records-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.rules-grid div,
+.record-tile {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.rules-grid span,
+.record-tile span,
+.record-tile small {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.rules-grid strong,
+.record-tile strong {
+  display: block;
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.card-note {
+  margin: 14px 0 0;
+}
+
 .progress-row {
   display: grid;
   gap: 8px;
@@ -530,7 +565,9 @@ td span {
   }
 
   .kpi-grid,
-  .overview-grid {
+  .overview-grid,
+  .rules-grid,
+  .records-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -562,7 +599,9 @@ td span {
 
   .page-header,
   .split,
-  .overview-grid {
+  .overview-grid,
+  .rules-grid,
+  .records-grid {
     display: grid;
     grid-template-columns: 1fr;
   }

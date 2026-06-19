@@ -8,7 +8,7 @@ export const initialFilters: Filters = {
   teamId: 'all',
   repId: 'all',
   status: 'all',
-  project: 'all',
+  saleType: 'all',
   search: '',
 };
 
@@ -26,14 +26,24 @@ export function applyFilters(orders: SaleOrder[], filters: Filters): SaleOrder[]
     const teamMatch = filters.teamId === 'all' || order.teamId === filters.teamId;
     const repMatch = filters.repId === 'all' || order.repId === filters.repId;
     const statusMatch = filters.status === 'all' || order.status === filters.status;
-    const projectMatch = filters.project === 'all' || order.project === filters.project;
+    const saleTypeMatch = filters.saleType === 'all' || order.saleType === filters.saleType;
     const searchMatch =
       !search ||
-      [order.id, order.customerLabel, order.address, order.project, order.product, order.status, order.comment]
+      [
+        order.id,
+        order.customerLabel,
+        order.address,
+        order.saleType,
+        order.connectionType,
+        order.fiberPhase,
+        order.product,
+        order.status,
+        order.comment,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(search);
-    return inDate && teamMatch && repMatch && statusMatch && projectMatch && searchMatch;
+    return inDate && teamMatch && repMatch && statusMatch && saleTypeMatch && searchMatch;
   });
 }
 
@@ -41,21 +51,31 @@ export function countByStatus(orders: SaleOrder[], status: SaleStatus): number {
   return orders.filter((order) => order.status === status).length;
 }
 
+export function pointTotal(orders: SaleOrder[]): number {
+  return orders.reduce((sum, order) => sum + order.points, 0);
+}
+
 export function getMetrics(orders: SaleOrder[]) {
-  const total = orders.length;
+  const totalSales = orders.length;
   const confirmed = countByStatus(orders, 'Confirmed');
   const cancelled = countByStatus(orders, 'Cancelled');
   const qcOpen = countByStatus(orders, 'QC Open');
   const pending = countByStatus(orders, 'Pending');
   const notClaimable = countByStatus(orders, 'Not claimable');
-  const net = confirmed + qcOpen + pending - cancelled;
-  const contacted = orders.reduce((sum, order) => sum + order.contactedAddresses, 0);
-  const takeRate = contacted ? Math.round((confirmed / contacted) * 1000) / 10 : 0;
-  return { total, confirmed, cancelled, qcOpen, pending, notClaimable, net, takeRate };
+  const points = pointTotal(orders);
+  const claimableSales = orders.filter((order) => order.claimable).length;
+  const averagePoints = claimableSales ? Math.round((points / claimableSales) * 10) / 10 : 0;
+  return { totalSales, confirmed, cancelled, qcOpen, pending, notClaimable, points, claimableSales, averagePoints };
 }
 
 export function repName(reps: SalesRep[], repId: string): string {
   return reps.find((rep) => rep.id === repId)?.name ?? 'Unknown rep';
+}
+
+export function shortRepName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
 
 export function teamName(teams: Team[], teamId: string): string {
@@ -63,7 +83,8 @@ export function teamName(teams: Team[], teamId: string): string {
 }
 
 export function periodBounds(period: string): { start: string; end: string; label: string } {
-  if (period === 'day') return { start: '2026-06-18', end: '2026-06-18', label: 'Day' };
+  if (period === 'yesterday') return { start: '2026-06-18', end: '2026-06-18', label: 'Yesterday' };
+  if (period === 'current') return { start: today, end: today, label: 'Current' };
   if (period === 'week') return { start: '2026-06-15', end: today, label: 'Week' };
   if (period === 'month') return { start: '2026-06-01', end: today, label: 'Month' };
   if (period === 'year') return { start: '2026-01-01', end: today, label: 'Year' };
@@ -83,32 +104,53 @@ export function rankReps(orders: SaleOrder[], reps: SalesRep[]) {
   return reps
     .map((rep) => {
       const repOrders = orders.filter((order) => order.repId === rep.id);
+      const points = pointTotal(repOrders);
       return {
         id: rep.id,
         name: rep.name,
         teamId: rep.teamId,
+        points,
+        budget: rep.monthlyPointBudget,
+        budgetProgress: Math.round((points / Math.max(rep.monthlyPointBudget, 1)) * 100),
         confirmed: confirmedCount(repOrders),
         cancellations: countByStatus(repOrders, 'Cancelled'),
         qcOpen: countByStatus(repOrders, 'QC Open'),
         total: repOrders.length,
       };
     })
-    .sort((a, b) => b.confirmed - a.confirmed || a.cancellations - b.cancellations);
+    .sort((a, b) => b.points - a.points || b.confirmed - a.confirmed || a.cancellations - b.cancellations);
 }
 
 export function rankTeams(orders: SaleOrder[], teams: Team[]) {
   return teams
     .map((team) => {
       const teamOrders = orders.filter((order) => order.teamId === team.id);
+      const points = pointTotal(teamOrders);
       return {
         id: team.id,
         name: team.name,
+        points,
         confirmed: confirmedCount(teamOrders),
         cancellations: countByStatus(teamOrders, 'Cancelled'),
         qcOpen: countByStatus(teamOrders, 'QC Open'),
         total: teamOrders.length,
-        goal: team.monthlyGoal,
+        goal: team.monthlyPointGoal,
       };
     })
-    .sort((a, b) => b.confirmed - a.confirmed || a.cancellations - b.cancellations);
+    .sort((a, b) => b.points - a.points || b.confirmed - a.confirmed || a.cancellations - b.cancellations);
+}
+
+export function allTimeHighs(orders: SaleOrder[], reps: SalesRep[], teams: Team[]) {
+  const periods = ['yesterday', 'week', 'month', 'year', 'all'];
+  return periods.map((period) => {
+    const periodOrders = ordersInPeriod(orders, period);
+    const topRep = rankReps(periodOrders, reps)[0];
+    const topTeam = rankTeams(periodOrders, teams)[0];
+    return {
+      period,
+      topRep,
+      topTeam,
+      label: periodBounds(period).label,
+    };
+  });
 }
