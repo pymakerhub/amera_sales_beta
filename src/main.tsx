@@ -19,15 +19,37 @@ import {
 import './styles.css';
 
 type Page = 'dashboard' | 'my-sales' | 'team-leader' | 'admin-sales' | 'leaderboard' | 'overview';
+type RankingRow = { label: string; value: number; meta: string; rank?: number; current?: boolean; divider?: boolean };
 
-const navItems: { page: Page; label: string }[] = [
-  { page: 'dashboard', label: 'Dashboard' },
-  { page: 'my-sales', label: 'My Sales' },
-  { page: 'team-leader', label: 'Team Leader' },
-  { page: 'admin-sales', label: 'All Sales' },
-  { page: 'leaderboard', label: 'Hall of Fame' },
-  { page: 'overview', label: 'Current App Overview' },
+const navItems: { page: Page; label: string; roles: User['role'][] }[] = [
+  { page: 'dashboard', label: 'Dashboard', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'my-sales', label: 'My Sales', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'team-leader', label: 'Team Leader', roles: ['admin', 'team_leader'] },
+  { page: 'admin-sales', label: 'All Sales', roles: ['admin', 'team_leader'] },
+  { page: 'leaderboard', label: 'Hall of Fame', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'overview', label: 'Current App Overview', roles: ['admin'] },
 ];
+
+function allowedNavItems(user: User) {
+  return navItems.filter((item) => item.roles.includes(user.role));
+}
+
+function teamsForUser(user: User) {
+  if (user.role === 'admin') return teams;
+  if (user.role === 'team_leader') return teams.filter((team) => user.teamIds?.includes(team.id));
+  const rep = reps.find((candidate) => candidate.id === user.repId);
+  return rep ? teams.filter((team) => team.id === rep.teamId) : [];
+}
+
+function repsForUser(user: User) {
+  if (user.role === 'admin') return reps;
+  if (user.role === 'team_leader') return reps.filter((rep) => user.teamIds?.includes(rep.teamId));
+  return reps.filter((rep) => rep.id === user.repId);
+}
+
+function sanitizePage(page: Page, user: User): Page {
+  return allowedNavItems(user).some((item) => item.page === page) ? page : 'dashboard';
+}
 
 function App() {
   const [user, setUser] = useState<User | null>(() => {
@@ -47,6 +69,8 @@ function App() {
   }
 
   if (!user) return <LoginPage onLogin={handleLogin} />;
+  const safePage = sanitizePage(page, user);
+  const visibleNav = allowedNavItems(user);
 
   return (
     <div className="app-shell">
@@ -59,15 +83,15 @@ function App() {
           </div>
         </div>
         <nav>
-          {navItems.map((item) => (
-            <button key={item.page} className={page === item.page ? 'active' : ''} onClick={() => setPage(item.page)}>
+          {visibleNav.map((item) => (
+            <button key={item.page} className={safePage === item.page ? 'active' : ''} onClick={() => setPage(item.page)}>
               {item.label}
             </button>
           ))}
         </nav>
         <div className="role-card">
           <span>Signed in as</span>
-          <strong>{user.name}</strong>
+          <strong>{shortRepName(user.name)}</strong>
           <small>{user.role.replace('_', ' ')}</small>
           <button className="ghost" onClick={logout}>
             Log out
@@ -76,12 +100,12 @@ function App() {
       </aside>
       <main>
         <Header user={user} />
-        {page === 'dashboard' && <Dashboard user={user} />}
-        {page === 'my-sales' && <MySales user={user} />}
-        {page === 'team-leader' && <TeamLeader user={user} />}
-        {page === 'admin-sales' && <AdminSales user={user} />}
-        {page === 'leaderboard' && <Leaderboard user={user} />}
-        {page === 'overview' && <Overview />}
+        {safePage === 'dashboard' && <Dashboard user={user} />}
+        {safePage === 'my-sales' && <MySales user={user} />}
+        {safePage === 'team-leader' && <TeamLeader user={user} />}
+        {safePage === 'admin-sales' && <AdminSales user={user} />}
+        {safePage === 'leaderboard' && <Leaderboard user={user} />}
+        {safePage === 'overview' && <Overview />}
       </main>
     </div>
   );
@@ -151,11 +175,20 @@ function Dashboard({ user }: { user: User }) {
   const visible = visibleOrdersForUser(orders, user);
   const filtered = applyFilters(visible, filters);
   const metrics = getMetrics(filtered);
-  const rankedTeams = rankTeams(filtered, teams).slice(0, 4);
+  const scopedTeams = teamsForUser(user);
+  const scopedReps = repsForUser(user);
+  const rankedTeams = rankTeams(filtered, scopedTeams).slice(0, 4);
+  const rankedReps = rankReps(filtered, scopedReps).slice(0, 6);
+  const dashboardSubtitle =
+    user.role === 'sales_rep'
+      ? 'Your dashboard shows only your own sales and point budget.'
+      : user.role === 'team_leader'
+        ? 'Your dashboard shows only your assigned team members and team performance.'
+        : 'Admin dashboard includes all dummy teams and sales reps.';
 
   return (
-    <PageSection title="Main Dashboard" subtitle="All beta users are admins. Performance is now measured by sales volume and Amera Points.">
-      <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} />
+    <PageSection title="Main Dashboard" subtitle={dashboardSubtitle}>
+      <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} user={user} showTeamFilter={user.role !== 'sales_rep'} showRepFilter={user.role !== 'sales_rep'} />
       <div className="kpi-grid">
         <Kpi label="Amera Points" value={metrics.points} tone="good" />
         <Kpi label="Total Sales" value={metrics.totalSales} />
@@ -165,11 +198,27 @@ function Dashboard({ user }: { user: User }) {
         <Kpi label="QC Open" value={metrics.qcOpen} tone="warn" />
       </div>
       <div className="split">
-        <Card title="Team Point Progress">
-          {rankedTeams.map((team) => (
-            <ProgressRow key={team.id} label={team.name} value={team.points} max={team.goal} detail={`${team.points}/${team.goal} points`} />
-          ))}
-        </Card>
+        {user.role === 'sales_rep' ? (
+          <Card title="Your Point Budget">
+            {scopedReps.map((rep) => {
+              const repPoints = pointTotal(filtered.filter((order) => order.repId === rep.id));
+              return <ProgressRow key={rep.id} label={shortRepName(rep.name)} value={repPoints} max={rep.monthlyPointBudget} detail={`${repPoints}/${rep.monthlyPointBudget} points`} />;
+            })}
+          </Card>
+        ) : (
+          <Card title="Team Point Progress">
+            {rankedTeams.map((team) => (
+              <ProgressRow key={team.id} label={team.name} value={team.points} max={team.goal} detail={`${team.points}/${team.goal} points`} />
+            ))}
+          </Card>
+        )}
+        {user.role !== 'sales_rep' && (
+          <Card title="Rep Point Progress">
+            {rankedReps.map((rep) => (
+              <ProgressRow key={rep.id} label={shortRepName(rep.name)} value={rep.points} max={rep.budget} detail={`${rep.points}/${rep.budget} points`} />
+            ))}
+          </Card>
+        )}
         <Card title="Amera-Point System">
           <div className="rules-grid">
             {pointRules.map((rule) => (
@@ -198,23 +247,26 @@ function Dashboard({ user }: { user: User }) {
 }
 
 function MySales({ user }: { user: User }) {
-  const [repId, setRepId] = useState(reps[0].id);
-  const activeRepId = user.role === 'sales_rep' && user.repId ? user.repId : repId;
-  const activeRep = reps.find((rep) => rep.id === activeRepId) ?? reps[0];
-  const scoped = orders.filter((order) => order.repId === activeRepId);
+  const allowedReps = repsForUser(user);
+  const [repId, setRepId] = useState(allowedReps[0]?.id ?? reps[0].id);
+  const [filters, setFilters] = useState<Filters>({ ...initialFilters, search: '' });
+  const activeRepId = user.role === 'sales_rep' && user.repId ? user.repId : allowedReps.some((rep) => rep.id === repId) ? repId : allowedReps[0]?.id ?? repId;
+  const activeRep = reps.find((rep) => rep.id === activeRepId) ?? allowedReps[0] ?? reps[0];
+  const scoped = applyFilters(orders.filter((order) => order.repId === activeRepId), { ...filters, teamId: 'all', repId: 'all' });
   const repRanking = rankReps(ordersInPeriod(orders, 'month'), reps);
   const rank = repRanking.findIndex((row) => row.id === activeRepId) + 1;
-  const points = pointTotal(scoped.filter((order) => order.date >= '2026-06-01'));
+  const monthOrders = orders.filter((order) => order.repId === activeRepId && order.date >= '2026-06-01');
+  const points = pointTotal(monthOrders);
   return (
-    <PageSection title="My Sales" subtitle="Future sales reps will only see their own sales, point budget, and comparison against other reps. Admins can preview any rep during beta testing.">
-      {user.role === 'admin' && (
+    <PageSection title="My Sales" subtitle="Sales reps see only their own orders here. Admins and team leaders can preview only the reps they are allowed to manage.">
+      {user.role !== 'sales_rep' && (
         <div className="toolbar">
           <label>
             Preview rep
             <select value={repId} onChange={(event) => setRepId(event.target.value)}>
-              {reps.map((rep) => (
+              {allowedReps.map((rep) => (
                 <option key={rep.id} value={rep.id}>
-                  {rep.name}
+                  {shortRepName(rep.name)}
                 </option>
               ))}
             </select>
@@ -224,7 +276,20 @@ function MySales({ user }: { user: User }) {
           <Kpi label="Rep Rank" value={`#${rank || '-'}`} compact />
         </div>
       )}
-      <Card title={`${activeRep.name} Budget Progress`}>
+      {user.role === 'sales_rep' && (
+        <div className="toolbar">
+          <Kpi label="Monthly Points" value={points} compact tone="good" />
+          <Kpi label="Point Budget" value={activeRep.monthlyPointBudget} compact />
+          <Kpi label="Hall of Fame Rank" value={`#${rank || '-'}`} compact />
+        </div>
+      )}
+      <FiltersBar filters={filters} setFilters={setFilters} includeSearch user={user} showTeamFilter={false} showRepFilter={false} />
+      <div className="toolbar right">
+        <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
+          Export placeholder
+        </button>
+      </div>
+      <Card title={`${shortRepName(activeRep.name)} Budget Progress`}>
         <ProgressRow label="Monthly Amera Points" value={points} max={activeRep.monthlyPointBudget} detail={`${points}/${activeRep.monthlyPointBudget} points`} />
       </Card>
       <OrdersTable orders={scoped} />
@@ -279,7 +344,7 @@ function TeamLeader({ user }: { user: User }) {
             {ranking.map((row, index) => (
               <tr key={row.id}>
                 <td>#{index + 1}</td>
-                <td>{row.name}</td>
+                <td>{shortRepName(row.name)}</td>
                 <td>{row.points}</td>
                 <td>{row.budget}</td>
                 <td>{row.budgetProgress}%</td>
@@ -302,7 +367,7 @@ function AdminSales({ user }: { user: User }) {
   const filtered = applyFilters(visibleOrdersForUser(orders, user), filters);
   return (
     <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order, point value, sale type, status, and sales rep in the beta.">
-      <FiltersBar filters={filters} setFilters={setFilters} includeSearch />
+      <FiltersBar filters={filters} setFilters={setFilters} includeSearch user={user} showTeamFilter showRepFilter />
       <div className="toolbar right">
         <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
           Export placeholder
@@ -315,10 +380,30 @@ function AdminSales({ user }: { user: User }) {
 
 function Leaderboard({ user }: { user: User }) {
   const [period, setPeriod] = useState('week');
-  const visible = ordersInPeriod(visibleOrdersForUser(orders, user), period);
-  const repRanking = rankReps(visible, reps).slice(0, 10);
+  const visible = ordersInPeriod(orders, period);
+  const fullRepRanking = rankReps(visible, reps);
   const teamRanking = rankTeams(visible, teams);
-  const records = allTimeHighs(visibleOrdersForUser(orders, user), reps, teams);
+  const records = allTimeHighs(orders, reps, teams);
+  const currentRepRankIndex = user.repId ? fullRepRanking.findIndex((row) => row.id === user.repId) : -1;
+  const repRows: RankingRow[] = fullRepRanking.slice(0, 10).map((row, index) => ({
+    label: shortRepName(row.name),
+    value: row.points,
+    meta: `${teamName(teams, row.teamId)} · ${row.confirmed} sales`,
+    rank: index + 1,
+    current: row.id === user.repId,
+  }));
+
+  if (user.role === 'sales_rep' && currentRepRankIndex >= 10) {
+    const ownRow = fullRepRanking[currentRepRankIndex];
+    repRows.push({ label: '...', value: 0, meta: '', divider: true });
+    repRows.push({
+      label: shortRepName(ownRow.name),
+      value: ownRow.points,
+      meta: `${teamName(teams, ownRow.teamId)} · ${ownRow.confirmed} sales`,
+      rank: currentRepRankIndex + 1,
+      current: true,
+    });
+  }
   return (
     <PageSection title="Leaderboard / Hall of Fame" subtitle="Competitions and leaderboard positions are measured by Amera Points. Public rep names show first name and last initial only.">
       <div className="period-tabs">
@@ -329,8 +414,8 @@ function Leaderboard({ user }: { user: User }) {
         ))}
       </div>
       <div className="split">
-        <RankingCard title="Individuals" rows={repRanking.map((row) => ({ label: shortRepName(row.name), value: row.points, meta: `${teamName(teams, row.teamId)} · ${row.confirmed} sales` }))} />
-        <RankingCard title="Teams" rows={teamRanking.map((row) => ({ label: row.name, value: row.points, meta: `${row.confirmed} sales · ${row.qcOpen} QC open` }))} />
+        <RankingCard title="Individuals" rows={repRows} />
+        <RankingCard title="Teams" rows={teamRanking.map((row, index) => ({ label: row.name, value: row.points, meta: `${row.confirmed} sales · ${row.qcOpen} QC open`, rank: index + 1 }))} />
       </div>
       <Card title="All-Time High Records">
         <div className="records-grid">
@@ -373,8 +458,24 @@ function Overview() {
   );
 }
 
-function FiltersBar({ filters, setFilters, includeSearch }: { filters: Filters; setFilters: (filters: Filters) => void; includeSearch: boolean }) {
+function FiltersBar({
+  filters,
+  setFilters,
+  includeSearch,
+  user,
+  showTeamFilter = true,
+  showRepFilter = true,
+}: {
+  filters: Filters;
+  setFilters: (filters: Filters) => void;
+  includeSearch: boolean;
+  user: User;
+  showTeamFilter?: boolean;
+  showRepFilter?: boolean;
+}) {
   const update = (key: keyof Filters, value: string) => setFilters({ ...filters, [key]: value });
+  const availableTeams = teamsForUser(user);
+  const availableReps = repsForUser(user);
   return (
     <div className="filters">
       <label>
@@ -385,28 +486,32 @@ function FiltersBar({ filters, setFilters, includeSearch }: { filters: Filters; 
         To
         <input type="date" value={filters.endDate} onChange={(event) => update('endDate', event.target.value)} />
       </label>
-      <label>
-        Team
-        <select value={filters.teamId} onChange={(event) => update('teamId', event.target.value)}>
-          <option value="all">All teams</option>
-          {teams.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Rep
-        <select value={filters.repId} onChange={(event) => update('repId', event.target.value)}>
-          <option value="all">All reps</option>
-          {reps.map((rep) => (
-            <option key={rep.id} value={rep.id}>
-              {rep.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {showTeamFilter && (
+        <label>
+          Team
+          <select value={filters.teamId} onChange={(event) => update('teamId', event.target.value)}>
+            <option value="all">All allowed teams</option>
+            {availableTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {showRepFilter && (
+        <label>
+          Rep
+          <select value={filters.repId} onChange={(event) => update('repId', event.target.value)}>
+            <option value="all">All allowed reps</option>
+            {availableReps.map((rep) => (
+              <option key={rep.id} value={rep.id}>
+                {shortRepName(rep.name)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Status
         <select value={filters.status} onChange={(event) => update('status', event.target.value)}>
@@ -465,7 +570,7 @@ function OrdersTable({ orders: tableOrders, showRep = false }: { orders: SaleOrd
             <tr key={order.id}>
               <td>{order.id}</td>
               <td>{order.date}</td>
-              {showRep && <td>{repName(reps, order.repId)}</td>}
+              {showRep && <td>{shortRepName(repName(reps, order.repId))}</td>}
               <td>{order.pkGk}</td>
               <td>{order.saleType}</td>
               <td>{order.bkNk}</td>
@@ -533,15 +638,21 @@ function ProgressRow({ label, value, max, detail }: { label: string; value: numb
   );
 }
 
-function RankingCard({ title, rows }: { title: string; rows: { label: string; value: number; meta: string }[] }) {
+function RankingCard({ title, rows }: { title: string; rows: RankingRow[] }) {
   return (
     <Card title={title}>
       <ol className="ranking">
-        {rows.map((row) => (
-          <li key={row.label}>
-            <span>{row.label}</span>
-            <small>{row.meta}</small>
-            <strong>{row.value}</strong>
+        {rows.map((row, index) => (
+          <li key={`${row.label}-${row.rank ?? index}`} className={`${row.current ? 'current-rank' : ''} ${row.divider ? 'rank-divider' : ''}`}>
+            {row.divider ? (
+              <span>...</span>
+            ) : (
+              <>
+                <span>{row.rank ? `#${row.rank} ${row.label}` : row.label}</span>
+                <small>{row.meta}</small>
+                <strong>{row.value}</strong>
+              </>
+            )}
           </li>
         ))}
       </ol>

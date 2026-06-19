@@ -490,6 +490,21 @@ td span {
   padding: 12px;
 }
 
+.ranking li.current-rank {
+  border-color: var(--blue);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.ranking li.rank-divider {
+  display: block;
+  text-align: center;
+}
+
+.ranking li.rank-divider span {
+  color: var(--muted);
+  font-weight: 900;
+}
+
 .ranking small {
   color: var(--muted);
   grid-column: 1;
