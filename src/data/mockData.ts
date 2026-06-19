@@ -1,9 +1,11 @@
-import { ConnectionType, FiberPhase, SaleOrder, SalesRep, SaleType, Team, User } from '../types';
+import { BkNk, Marketing, PkGk, SaleOrder, SalesRep, SaleType, Team, User } from '../types';
 
 export const users: User[] = [
   { id: 'u-axel', name: 'Axel', username: 'axel', password: 'beta123', role: 'admin' },
   { id: 'u-aleksander', name: 'Aleksander', username: 'aleksander', password: 'beta123', role: 'admin' },
   { id: 'u-luis', name: 'Luis', username: 'luis', password: 'beta123', role: 'admin' },
+  { id: 'u-emil', name: 'Emil Berg', username: 'emil', password: 'beta123', role: 'sales_rep', repId: 'rep-emil' },
+  { id: 'u-ingrid', name: 'Ingrid Nilsen', username: 'ingrid', password: 'beta123', role: 'team_leader', repId: 'rep-ingrid', teamIds: ['team-oslo'] },
 ];
 
 export const teams: Team[] = [
@@ -28,9 +30,10 @@ export const reps: SalesRep[] = [
   { id: 'rep-sander', name: 'Sander Lie', teamId: 'team-stavanger', role: 'Sales Rep', active: true, joined: '2025-03-17', monthlyPointBudget: 96 },
 ];
 
-export const saleTypes: SaleType[] = ['Neutral', 'SpeedUp', 'ContentUp', 'LayerUp'];
-export const connectionTypes: ConnectionType[] = ['None', 'NK', 'GK'];
-export const fiberPhases: FiberPhase[] = ['None', 'NVM / RVM Fiber Neu'];
+export const saleTypes: SaleType[] = ['SUCU', 'LUSU', 'SUCN', 'SNCN', 'LUSN', 'LUSD', 'BNTP', 'BNDP'];
+export const pkGkTypes: PkGk[] = ['PK', 'GK'];
+export const bkNkTypes: BkNk[] = ['BK', 'NK'];
+export const marketingTypes: Marketing[] = ['VVM', 'NVM', 'RVM'];
 
 export const pointRules = [
   { label: 'Neutral', points: 1 },
@@ -42,35 +45,28 @@ export const pointRules = [
   { label: 'NVM / RVM Fiber Neu', points: 5 },
 ];
 
-export function calculateAmeraPoints(saleType: SaleType, connectionType: ConnectionType, fiberPhase: FiberPhase): number {
-  const saleTypePoints: Record<SaleType, number> = {
-    Neutral: 1,
-    SpeedUp: 2,
-    ContentUp: 2,
-    LayerUp: 3,
-  };
-  const connectionPoints: Record<ConnectionType, number> = {
-    None: 0,
-    NK: 5,
-    GK: 3,
-  };
-  return saleTypePoints[saleType] + connectionPoints[connectionType] + (fiberPhase === 'NVM / RVM Fiber Neu' ? 5 : 0);
+function saleTypePoints(saleType: SaleType): number {
+  if (saleType.startsWith('LU')) return 3;
+  if (saleType.includes('SU') || saleType.includes('CU')) return 2;
+  return 1;
 }
 
-const names = ['Demo Household', 'Sample Residence', 'Test Family', 'Beta Address', 'Pilot Home', 'Training Lead'];
-const streets = ['Maple Gate', 'Harbor Lane', 'Fjord Road', 'Market Street', 'Station View', 'Park Terrace'];
+export function calculateAmeraPoints(saleType: SaleType, pkGk: PkGk, bkNk: BkNk, marketing: Marketing, fiberNeu: boolean): number {
+  return saleTypePoints(saleType) + (pkGk === 'GK' ? 3 : 0) + (bkNk === 'NK' ? 5 : 0) + (fiberNeu && marketing !== 'VVM' ? 5 : 0);
+}
+
 const products = ['Fiber 500', 'Fiber 1000', 'TV + Fiber', 'Mobile Bundle', 'Upgrade Pack'];
+const transitionProducts = ['None', 'Starter Fiber', 'Legacy TV', 'Copper migration', 'Router swap'];
 const comments = [
   'Confirmed with standard beta paperwork.',
-  'Customer chose UP package during callback.',
+  'Buyer chose UP package during callback.',
   'Fiber Neu bonus applies for this dummy case.',
   'Needs QC review before points become final.',
   'Cancelled after demo price comparison.',
   'In progress before points are final.',
-  'Not claimable: duplicate demo address.',
 ];
 
-const statusPattern = ['Confirmed', 'Confirmed', 'Confirmed', 'QC Open', 'In Progress', 'Cancelled', 'Not claimable'] as const;
+const statusPattern = ['Confirmed', 'Confirmed', 'Confirmed', 'QC Open', 'In Progress', 'Cancelled'] as const;
 
 export const orders: SaleOrder[] = Array.from({ length: 96 }, (_, index) => {
   const rep = reps[index % reps.length];
@@ -78,26 +74,27 @@ export const orders: SaleOrder[] = Array.from({ length: 96 }, (_, index) => {
   const date = new Date(Date.UTC(2026, 5, 18 - dayOffset));
   const status = statusPattern[index % statusPattern.length];
   const saleType = saleTypes[index % saleTypes.length];
-  const connectionType = connectionTypes[(index + 1) % connectionTypes.length];
-  const fiberPhase = index % 5 === 0 || index % 11 === 0 ? 'NVM / RVM Fiber Neu' : 'None';
-  const isClaimable = status === 'Confirmed' || status === 'In Progress';
+  const pkGk = pkGkTypes[index % pkGkTypes.length];
+  const bkNk = bkNkTypes[(index + 1) % bkNkTypes.length];
+  const marketing = marketingTypes[index % marketingTypes.length];
+  const fiberNeu = index % 4 === 0 || index % 9 === 0;
+  const scoresPoints = status !== 'Cancelled' && status !== 'QC Open';
   return {
     id: `DEMO-${String(index + 1).padStart(4, '0')}`,
     date: date.toISOString().slice(0, 10),
     repId: rep.id,
     teamId: rep.teamId,
-    customerLabel: `${names[index % names.length]} ${index + 1}`,
-    address: `${100 + index} ${streets[index % streets.length]}, Demo City`,
-    area: teams.find((team) => team.id === rep.teamId)?.area ?? 'Demo Area',
+    pkGk,
     product: products[(index + 2) % products.length],
+    transitionProduct: transitionProducts[index % transitionProducts.length],
     saleType,
-    connectionType,
-    fiberPhase,
-    points: isClaimable ? calculateAmeraPoints(saleType, connectionType, fiberPhase) : 0,
+    bkNk,
+    marketing,
+    fiberNeu,
+    points: scoresPoints ? calculateAmeraPoints(saleType, pkGk, bkNk, marketing, fiberNeu) : 0,
     status,
-    claimable: isClaimable,
     comment: comments[index % comments.length],
   };
 });
 
-export const statuses = ['Confirmed', 'QC Open', 'Cancelled', 'In Progress', 'Not claimable'] as const;
+export const statuses = ['Confirmed', 'QC Open', 'Cancelled', 'In Progress'] as const;

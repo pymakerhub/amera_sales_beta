@@ -13,6 +13,8 @@ Test users:
 | Axel | `axel` | `beta123` | admin |
 | Aleksander | `aleksander` | `beta123` | admin |
 | Luis | `luis` | `beta123` | admin |
+| Ingrid | `ingrid` | `beta123` | team_leader |
+| Emil | `emil` | `beta123` | sales_rep |
 
 ## What It Includes
 
@@ -23,7 +25,7 @@ Test users:
 - Admin All Sales table with search and export placeholder
 - Hall of Fame leaderboards by yesterday, current day, week, month, year, and all time
 - Current App Overview explaining the old PHP app concepts reused
-- Dummy teams, reps, statuses, orders, point budgets, comments, and addresses
+- Dummy teams, reps, statuses, orders, point budgets, products, transition products, marketing types, and comments
 
 ## Amera-Point System
 

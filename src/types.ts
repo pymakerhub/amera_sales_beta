@@ -1,9 +1,10 @@
 export type Role = 'admin' | 'team_leader' | 'sales_rep';
 
-export type SaleStatus = 'Confirmed' | 'QC Open' | 'Cancelled' | 'In Progress' | 'Not claimable';
-export type SaleType = 'Neutral' | 'SpeedUp' | 'ContentUp' | 'LayerUp';
-export type FiberPhase = 'None' | 'NVM / RVM Fiber Neu';
-export type ConnectionType = 'None' | 'NK' | 'GK';
+export type SaleStatus = 'Confirmed' | 'QC Open' | 'Cancelled' | 'In Progress';
+export type SaleType = 'SUCU' | 'LUSU' | 'SUCN' | 'SNCN' | 'LUSN' | 'LUSD' | 'BNTP' | 'BNDP';
+export type PkGk = 'PK' | 'GK';
+export type BkNk = 'BK' | 'NK';
+export type Marketing = 'VVM' | 'NVM' | 'RVM';
 
 export type User = {
   id: string;
@@ -38,16 +39,15 @@ export type SaleOrder = {
   date: string;
   repId: string;
   teamId: string;
-  customerLabel: string;
-  address: string;
-  area: string;
+  pkGk: PkGk;
   product: string;
+  transitionProduct: string;
   saleType: SaleType;
-  connectionType: ConnectionType;
-  fiberPhase: FiberPhase;
+  bkNk: BkNk;
+  marketing: Marketing;
+  fiberNeu: boolean;
   points: number;
   status: SaleStatus;
-  claimable: boolean;
   comment: string;
 };
 

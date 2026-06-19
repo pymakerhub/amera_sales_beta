@@ -159,8 +159,8 @@ function Dashboard({ user }: { user: User }) {
       <div className="kpi-grid">
         <Kpi label="Amera Points" value={metrics.points} tone="good" />
         <Kpi label="Total Sales" value={metrics.totalSales} />
-        <Kpi label="Claimable Sales" value={metrics.claimableSales} />
         <Kpi label="Avg Points / Sale" value={metrics.averagePoints} />
+        <Kpi label="In Progress" value={metrics.inProgress} />
         <Kpi label="Cancelled" value={metrics.cancelled} tone="bad" />
         <Kpi label="QC Open" value={metrics.qcOpen} tone="warn" />
       </div>
@@ -301,14 +301,14 @@ function AdminSales({ user }: { user: User }) {
   const [filters, setFilters] = useState<Filters>({ ...initialFilters, search: '' });
   const filtered = applyFilters(visibleOrdersForUser(orders, user), filters);
   return (
-    <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order, point value, sale type, and claimable status in the beta.">
+    <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order, point value, sale type, status, and sales rep in the beta.">
       <FiltersBar filters={filters} setFilters={setFilters} includeSearch />
       <div className="toolbar right">
         <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
           Export placeholder
         </button>
       </div>
-      <OrdersTable orders={filtered} showRep showTeam />
+      <OrdersTable orders={filtered} showRep />
     </PageSection>
   );
 }
@@ -432,46 +432,45 @@ function FiltersBar({ filters, setFilters, includeSearch }: { filters: Filters; 
       {includeSearch && (
         <label>
           Search
-          <input value={filters.search} onChange={(event) => update('search', event.target.value)} placeholder="Order, address, comment" />
+          <input value={filters.search} onChange={(event) => update('search', event.target.value)} placeholder="Order, sale type, product, comment" />
         </label>
       )}
     </div>
   );
 }
 
-function OrdersTable({ orders: tableOrders, showRep = false, showTeam = false }: { orders: SaleOrder[]; showRep?: boolean; showTeam?: boolean }) {
+function OrdersTable({ orders: tableOrders, showRep = false }: { orders: SaleOrder[]; showRep?: boolean }) {
   return (
     <div className="table-wrap">
       <table>
         <thead>
           <tr>
+            <th>Order ID</th>
             <th>Date</th>
-            {showRep && <th>Rep</th>}
-            {showTeam && <th>Team</th>}
-            <th>Customer / address</th>
+            {showRep && <th>Sales Rep</th>}
+            <th>PK/GK</th>
             <th>Sale type</th>
-            <th>NK/GK</th>
-            <th>Fiber phase</th>
+            <th>BK/NK</th>
+            <th>Marketing</th>
+            <th>Fiber Neu</th>
             <th>Points</th>
             <th>Status</th>
             <th>Product</th>
+            <th>Übergangsproduct</th>
             <th>Comment</th>
-            <th>Claimable</th>
           </tr>
         </thead>
         <tbody>
           {tableOrders.map((order) => (
             <tr key={order.id}>
+              <td>{order.id}</td>
               <td>{order.date}</td>
               {showRep && <td>{repName(reps, order.repId)}</td>}
-              {showTeam && <td>{teamName(teams, order.teamId)}</td>}
-              <td>
-                <strong>{order.customerLabel}</strong>
-                <span>{order.address}</span>
-              </td>
+              <td>{order.pkGk}</td>
               <td>{order.saleType}</td>
-              <td>{order.connectionType}</td>
-              <td>{order.fiberPhase}</td>
+              <td>{order.bkNk}</td>
+              <td>{order.marketing}</td>
+              <td>{order.fiberNeu ? 'Yes' : 'No'}</td>
               <td>
                 <strong>{order.points}</strong>
               </td>
@@ -479,8 +478,8 @@ function OrdersTable({ orders: tableOrders, showRep = false, showTeam = false }:
                 <Badge status={order.status} />
               </td>
               <td>{order.product}</td>
+              <td>{order.transitionProduct}</td>
               <td>{order.comment}</td>
-              <td>{order.claimable ? 'Yes' : 'No'}</td>
             </tr>
           ))}
         </tbody>

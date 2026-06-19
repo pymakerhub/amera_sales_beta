@@ -31,11 +31,12 @@ export function applyFilters(orders: SaleOrder[], filters: Filters): SaleOrder[]
       !search ||
       [
         order.id,
-        order.customerLabel,
-        order.address,
         order.saleType,
-        order.connectionType,
-        order.fiberPhase,
+        order.pkGk,
+        order.bkNk,
+        order.marketing,
+        order.fiberNeu ? 'Fiber Neu yes' : 'Fiber Neu no',
+        order.transitionProduct,
         order.product,
         order.status,
         order.comment,
@@ -61,11 +62,10 @@ export function getMetrics(orders: SaleOrder[]) {
   const cancelled = countByStatus(orders, 'Cancelled');
   const qcOpen = countByStatus(orders, 'QC Open');
   const inProgress = countByStatus(orders, 'In Progress');
-  const notClaimable = countByStatus(orders, 'Not claimable');
   const points = pointTotal(orders);
-  const claimableSales = orders.filter((order) => order.claimable).length;
-  const averagePoints = claimableSales ? Math.round((points / claimableSales) * 10) / 10 : 0;
-  return { totalSales, confirmed, cancelled, qcOpen, inProgress, notClaimable, points, claimableSales, averagePoints };
+  const scoringSales = orders.filter((order) => order.points > 0).length;
+  const averagePoints = totalSales ? Math.round((points / totalSales) * 10) / 10 : 0;
+  return { totalSales, confirmed, cancelled, qcOpen, inProgress, points, scoringSales, averagePoints };
 }
 
 export function repName(reps: SalesRep[], repId: string): string {
