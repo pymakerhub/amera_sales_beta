@@ -38,8 +38,8 @@ export const pointRules = [
   { label: 'SpeedUp', points: 2 },
   { label: 'ContentUp', points: 3 },
   { label: 'LayerUp', points: 5 },
-  { label: 'NK', points: 3 },
-  { label: 'GK', points: 5 },
+  { label: 'NK', points: 5 },
+  { label: 'GK', points: 3 },
   { label: 'NVM / RVM Fiber Neu', points: 5 },
 ];
 
@@ -67,11 +67,11 @@ const comments = [
   'Fiber Neu bonus applies for this dummy case.',
   'Needs QC review before points become final.',
   'Cancelled after demo price comparison.',
-  'Pending approval before points are claimable.',
+  'In progress before points are final.',
   'Not claimable: duplicate demo address.',
 ];
 
-const statusPattern = ['Confirmed', 'Confirmed', 'Confirmed', 'QC Open', 'Pending', 'Cancelled', 'Not claimable'] as const;
+const statusPattern = ['Confirmed', 'Confirmed', 'Confirmed', 'QC Open', 'In Progress', 'Cancelled', 'Not claimable'] as const;
 
 export const orders: SaleOrder[] = Array.from({ length: 96 }, (_, index) => {
   const rep = reps[index % reps.length];
@@ -81,7 +81,7 @@ export const orders: SaleOrder[] = Array.from({ length: 96 }, (_, index) => {
   const saleType = saleTypes[index % saleTypes.length];
   const connectionType = connectionTypes[(index + 1) % connectionTypes.length];
   const fiberPhase = index % 5 === 0 || index % 11 === 0 ? 'NVM / RVM Fiber Neu' : 'None';
-  const isClaimable = status === 'Confirmed' || status === 'QC Open' || status === 'Pending';
+  const isClaimable = status === 'Confirmed' || status === 'In Progress';
   return {
     id: `DEMO-${String(index + 1).padStart(4, '0')}`,
     date: date.toISOString().slice(0, 10),
@@ -101,4 +101,4 @@ export const orders: SaleOrder[] = Array.from({ length: 96 }, (_, index) => {
   };
 });
 
-export const statuses = ['Confirmed', 'QC Open', 'Cancelled', 'Pending', 'Not claimable'] as const;
+export const statuses = ['Confirmed', 'QC Open', 'Cancelled', 'In Progress', 'Not claimable'] as const;

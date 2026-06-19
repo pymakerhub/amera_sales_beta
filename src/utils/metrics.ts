@@ -60,12 +60,12 @@ export function getMetrics(orders: SaleOrder[]) {
   const confirmed = countByStatus(orders, 'Confirmed');
   const cancelled = countByStatus(orders, 'Cancelled');
   const qcOpen = countByStatus(orders, 'QC Open');
-  const pending = countByStatus(orders, 'Pending');
+  const inProgress = countByStatus(orders, 'In Progress');
   const notClaimable = countByStatus(orders, 'Not claimable');
   const points = pointTotal(orders);
   const claimableSales = orders.filter((order) => order.claimable).length;
   const averagePoints = claimableSales ? Math.round((points / claimableSales) * 10) / 10 : 0;
-  return { totalSales, confirmed, cancelled, qcOpen, pending, notClaimable, points, claimableSales, averagePoints };
+  return { totalSales, confirmed, cancelled, qcOpen, inProgress, notClaimable, points, claimableSales, averagePoints };
 }
 
 export function repName(reps: SalesRep[], repId: string): string {

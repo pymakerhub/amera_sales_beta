@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'team_leader' | 'sales_rep';
 
-export type SaleStatus = 'Confirmed' | 'QC Open' | 'Cancelled' | 'Pending' | 'Not claimable';
+export type SaleStatus = 'Confirmed' | 'QC Open' | 'Cancelled' | 'In Progress' | 'Not claimable';
 export type SaleType = 'Neutral' | 'SpeedUp' | 'ContentUp' | 'LayerUp';
 export type FiberPhase = 'None' | 'NVM / RVM Fiber Neu';
 export type ConnectionType = 'None' | 'NK' | 'GK';
