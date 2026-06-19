@@ -1,0 +1,12 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Amera logo mark</title>
+  <desc id="desc">A stylized Amera A mark in cyan and blue.</desc>
+  <rect width="256" height="256" rx="42" fill="#0B1730"/>
+  <path d="M22 40C48 26 81 18 128 18C175 18 208 26 234 40L191 220H154L128 118L102 220H65L22 40Z" fill="#F8FBFF"/>
+  <path d="M40 49C63 39 90 34 128 34C166 34 193 39 216 49L203 103C181 94 157 90 128 90C99 90 75 94 53 103L40 49Z" fill="#8EEAF2"/>
+  <path d="M54 109C75 99 99 94 128 94C157 94 181 99 202 109L187 171C169 160 151 154 128 154C105 154 87 160 69 171L54 109Z" fill="#33C4EE"/>
+  <path d="M72 181C88 166 106 158 128 158C150 158 168 166 184 181L175 220H154L128 118L102 220H81L72 181Z" fill="#0D73C7"/>
+  <path d="M22 40L65 220H102L128 118L154 220H191L234 40L205 55L175 190L145 87H111L81 190L51 55L22 40Z" fill="#F8FBFF"/>
+  <path d="M25 41L51 55L81 190L65 220L22 40L25 41Z" fill="#D8EAF8"/>
+  <path d="M231 41L205 55L175 190L191 220L234 40L231 41Z" fill="#D8EAF8"/>
+</svg>

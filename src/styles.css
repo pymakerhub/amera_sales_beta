@@ -67,15 +67,20 @@ button:hover {
 
 .brand-mark {
   align-items: center;
-  background: linear-gradient(135deg, var(--blue), #61a5ff);
+  background: #0b1730;
   border-radius: 8px;
   color: #fff;
   display: flex;
-  font-size: 24px;
-  font-weight: 900;
   height: 46px;
   justify-content: center;
+  overflow: hidden;
   width: 46px;
+}
+
+.brand-mark img {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 .brand strong,

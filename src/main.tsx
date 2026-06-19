@@ -76,7 +76,9 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">A</div>
+          <div className="brand-mark">
+            <img src="./amera-logo.svg" alt="Amera" />
+          </div>
           <div>
             <strong>Amera</strong>
             <span>Salesboard beta</span>
@@ -130,7 +132,9 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
     <main className="login-page">
       <section className="login-panel">
         <div className="brand login-brand">
-          <div className="brand-mark">A</div>
+          <div className="brand-mark">
+            <img src="./amera-logo.svg" alt="Amera" />
+          </div>
           <div>
             <strong>Amera Salesboard</strong>
             <span>Beta reporting demo</span>
