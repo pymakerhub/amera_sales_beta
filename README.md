@@ -31,16 +31,25 @@ Competitions and leaderboards are measured by Amera Points:
 
 | Item | Points |
 | --- | ---: |
-| Sale | 1 |
-| Neutral | 2 |
+| Neutral | 1 |
 | SpeedUp | 2 |
-| ContentUp | 3 |
-| LayerUp | 5 |
-| NK | +3 |
-| GK | +5 |
+| ContentUp | 2 |
+| LayerUp | 3 |
+| NK | +5 |
+| GK | +3 |
 | NVM / RVM Fiber Neu | +5 |
 
-The beta includes point examples such as VVM NK without UP = 5 points, VVM NK with SpeedUp = 7 points, NVM NK = 10 points, NVM Fiber Neu Neutral = 6 points, and NVM GK NK Fiber Neu = 13 points.
+Examples:
+
+VVM NK without UP = 5 Amera Points
+
+VVM NK with UP Speedup = 7 Amera Points
+
+NVM NK = 10 Amera points (NK + NVM Fiber Neu)
+
+NVM Fiber Neu Neutral = 6 Amera Points (NVM Fiber Neu + BK Neutral)
+
+NVM GK NK Fiber Neu =13 Amera Points
 
 Leaderboard rep names are shortened to first name plus last initial for privacy.
 

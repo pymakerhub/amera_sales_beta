@@ -179,7 +179,13 @@ function Dashboard({ user }: { user: User }) {
               </div>
             ))}
           </div>
-          <p className="card-note">Examples: VVM NK without UP = 5 points. VVM NK with SpeedUp = 7. NVM NK = 10. NVM Fiber Neu Neutral = 6. NVM GK NK Fiber Neu = 13.</p>
+          <div className="examples-list">
+            <p>VVM NK without UP = 5 Amera Points</p>
+            <p>VVM NK with UP Speedup = 7 Amera Points</p>
+            <p>NVM NK = 10 Amera points (NK + NVM Fiber Neu)</p>
+            <p>NVM Fiber Neu Neutral = 6 Amera Points (NVM Fiber Neu + BK Neutral)</p>
+            <p>NVM GK NK Fiber Neu =13 Amera Points</p>
+          </div>
         </Card>
         <Card title="Status Mix">
           {statuses.map((status) => (

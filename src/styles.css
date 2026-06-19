@@ -353,8 +353,12 @@ select {
   margin-top: 4px;
 }
 
-.card-note {
-  margin: 14px 0 0;
+.examples-list {
+  margin-top: 14px;
+}
+
+.examples-list p {
+  margin: 0 0 6px;
 }
 
 .progress-row {

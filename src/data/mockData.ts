@@ -33,11 +33,10 @@ export const connectionTypes: ConnectionType[] = ['None', 'NK', 'GK'];
 export const fiberPhases: FiberPhase[] = ['None', 'NVM / RVM Fiber Neu'];
 
 export const pointRules = [
-  { label: 'Sale', points: 1 },
-  { label: 'Neutral', points: 2 },
+  { label: 'Neutral', points: 1 },
   { label: 'SpeedUp', points: 2 },
-  { label: 'ContentUp', points: 3 },
-  { label: 'LayerUp', points: 5 },
+  { label: 'ContentUp', points: 2 },
+  { label: 'LayerUp', points: 3 },
   { label: 'NK', points: 5 },
   { label: 'GK', points: 3 },
   { label: 'NVM / RVM Fiber Neu', points: 5 },
@@ -45,17 +44,17 @@ export const pointRules = [
 
 export function calculateAmeraPoints(saleType: SaleType, connectionType: ConnectionType, fiberPhase: FiberPhase): number {
   const saleTypePoints: Record<SaleType, number> = {
-    Neutral: 2,
+    Neutral: 1,
     SpeedUp: 2,
-    ContentUp: 3,
-    LayerUp: 5,
+    ContentUp: 2,
+    LayerUp: 3,
   };
   const connectionPoints: Record<ConnectionType, number> = {
     None: 0,
-    NK: 3,
-    GK: 5,
+    NK: 5,
+    GK: 3,
   };
-  return 1 + saleTypePoints[saleType] + connectionPoints[connectionType] + (fiberPhase === 'NVM / RVM Fiber Neu' ? 5 : 0);
+  return saleTypePoints[saleType] + connectionPoints[connectionType] + (fiberPhase === 'NVM / RVM Fiber Neu' ? 5 : 0);
 }
 
 const names = ['Demo Household', 'Sample Residence', 'Test Family', 'Beta Address', 'Pilot Home', 'Training Lead'];
