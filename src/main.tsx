@@ -18,14 +18,15 @@ import {
 } from './utils/metrics';
 import './styles.css';
 
-type Page = 'dashboard' | 'my-sales' | 'team-leader' | 'admin-sales' | 'leaderboard' | 'overview';
+type Page = 'dashboard' | 'team-leader' | 'admin-sales' | 'leaderboard' | 'overview';
 type RankingRow = { label: string; value: number; meta: string; rank?: number; current?: boolean; divider?: boolean };
+type PeriodMode = 'custom' | 'week' | 'month' | 'year';
+type PeriodPreset = { value: string; label: string; startDate: string; endDate: string };
 
 const navItems: { page: Page; label: string; roles: User['role'][] }[] = [
   { page: 'dashboard', label: 'Control Panel', roles: ['admin', 'team_leader', 'sales_rep'] },
-  { page: 'my-sales', label: 'My Sales', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'admin-sales', label: 'All Sales', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'team-leader', label: 'Team Leader', roles: ['admin', 'team_leader'] },
-  { page: 'admin-sales', label: 'All Sales', roles: ['admin', 'team_leader'] },
   { page: 'leaderboard', label: 'Hall of Fame', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'overview', label: 'Current App Overview', roles: ['admin'] },
 ];
@@ -94,7 +95,6 @@ function App() {
       <main>
         <Header user={user} />
         {safePage === 'dashboard' && <Dashboard user={user} />}
-        {safePage === 'my-sales' && <MySales user={user} />}
         {safePage === 'team-leader' && <TeamLeader user={user} />}
         {safePage === 'admin-sales' && <AdminSales user={user} />}
         {safePage === 'leaderboard' && <Leaderboard user={user} />}
@@ -184,7 +184,7 @@ function Dashboard({ user }: { user: User }) {
 
   return (
     <PageSection title="Control Panel" subtitle={dashboardSubtitle}>
-      <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} user={user} showTeamFilter={user.role !== 'sales_rep'} showRepFilter={user.role !== 'sales_rep'} />
+      <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} user={user} showTeamFilter={user.role !== 'sales_rep'} showRepFilter={user.role !== 'sales_rep'} includePeriodPicker />
       <div className="kpi-grid">
         <Kpi label="Amera Points" value={metrics.points} tone="good" />
         <Kpi label="Total Sales" value={metrics.totalSales} />
@@ -255,14 +255,7 @@ function TeamControlPanel({
     <section className="legacy-control">
       <div className="donut-panel">
         <DonutGoal value={totalProgress} slices={slices} colors={colors} />
-        <div className="donut-legend">
-          {rankedTeams.map((team, index) => (
-            <span key={team.id}>
-              <i style={{ background: colors[index % colors.length] }} />
-              {team.name} {Math.round((team.goal / Math.max(totalGoal, 1)) * 100)}%
-            </span>
-          ))}
-        </div>
+        <DonutLegend teams={rankedTeams} totalGoal={totalGoal} colors={colors} />
       </div>
       <div className="legacy-table-wrap">
         <table className="legacy-table">
@@ -273,14 +266,12 @@ function TeamControlPanel({
               <th>Goal</th>
               <th>Sales</th>
               <th>Progress</th>
-              <th>Prediction</th>
             </tr>
           </thead>
           <tbody>
             {rankedTeams.map((team) => {
               const progress = Math.min(100, Math.round((team.points / Math.max(team.goal, 1)) * 100));
               const members = scopedReps.filter((rep) => rep.teamId === team.id).map((rep) => rep.name.split(' ')[0]);
-              const prediction = Math.round(team.points * 1.42);
               return (
                 <tr key={team.id}>
                   <td>
@@ -296,9 +287,6 @@ function TeamControlPanel({
                   <td>
                     <ProgressPill value={progress} />
                   </td>
-                  <td>
-                    <strong className={prediction >= team.goal ? 'prediction-good' : 'prediction-warn'}>{prediction}</strong>
-                  </td>
                 </tr>
               );
             })}
@@ -306,6 +294,28 @@ function TeamControlPanel({
         </table>
       </div>
     </section>
+  );
+}
+
+function DonutLegend({
+  teams: rankedTeams,
+  totalGoal,
+  colors,
+}: {
+  teams: ReturnType<typeof rankTeams>;
+  totalGoal: number;
+  colors: string[];
+}) {
+  return (
+    <div className="donut-legend">
+      {rankedTeams.map((team, index) => (
+        <span key={team.id}>
+          <i style={{ background: colors[index % colors.length] }} />
+          <b>{team.name}</b>
+          <em>{Math.round((team.goal / Math.max(totalGoal, 1)) * 100)}%</em>
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -338,57 +348,6 @@ function ProgressPill({ value }: { value: number }) {
       <i style={{ width: `${visibleValue}%` }} />
       <b>{value}%</b>
     </span>
-  );
-}
-
-function MySales({ user }: { user: User }) {
-  const allowedReps = repsForUser(user);
-  const [repId, setRepId] = useState(allowedReps[0]?.id ?? reps[0].id);
-  const [filters, setFilters] = useState<Filters>({ ...initialFilters, search: '' });
-  const activeRepId = user.role === 'sales_rep' && user.repId ? user.repId : allowedReps.some((rep) => rep.id === repId) ? repId : allowedReps[0]?.id ?? repId;
-  const activeRep = reps.find((rep) => rep.id === activeRepId) ?? allowedReps[0] ?? reps[0];
-  const scoped = applyFilters(orders.filter((order) => order.repId === activeRepId), { ...filters, teamId: 'all', repId: 'all' });
-  const repRanking = rankReps(ordersInPeriod(orders, 'month'), reps);
-  const rank = repRanking.findIndex((row) => row.id === activeRepId) + 1;
-  const monthOrders = orders.filter((order) => order.repId === activeRepId && order.date >= '2026-06-01');
-  const points = pointTotal(monthOrders);
-  return (
-    <PageSection title="My Sales" subtitle="Sales reps see only their own orders here. Admins and team leaders can preview only the reps they are allowed to manage.">
-      {user.role !== 'sales_rep' && (
-        <div className="toolbar">
-          <label>
-            Preview rep
-            <select value={repId} onChange={(event) => setRepId(event.target.value)}>
-              {allowedReps.map((rep) => (
-                <option key={rep.id} value={rep.id}>
-                  {shortRepName(rep.name)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Kpi label="Monthly Points" value={points} compact tone="good" />
-          <Kpi label="Point Budget" value={activeRep.monthlyPointBudget} compact />
-          <Kpi label="Rep Rank" value={`#${rank || '-'}`} compact />
-        </div>
-      )}
-      {user.role === 'sales_rep' && (
-        <div className="toolbar">
-          <Kpi label="Monthly Points" value={points} compact tone="good" />
-          <Kpi label="Point Budget" value={activeRep.monthlyPointBudget} compact />
-          <Kpi label="Hall of Fame Rank" value={`#${rank || '-'}`} compact />
-        </div>
-      )}
-      <FiltersBar filters={filters} setFilters={setFilters} includeSearch user={user} showTeamFilter={false} showRepFilter={false} />
-      <div className="toolbar right">
-        <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
-          Export placeholder
-        </button>
-      </div>
-      <Card title={`${shortRepName(activeRep.name)} Budget Progress`}>
-        <ProgressRow label="Monthly Amera Points" value={points} max={activeRep.monthlyPointBudget} detail={`${points}/${activeRep.monthlyPointBudget} points`} />
-      </Card>
-      <OrdersTable orders={scoped} />
-    </PageSection>
   );
 }
 
@@ -459,10 +418,38 @@ function TeamLeader({ user }: { user: User }) {
 
 function AdminSales({ user }: { user: User }) {
   const [filters, setFilters] = useState<Filters>({ ...initialFilters, search: '' });
+  const allowedReps = repsForUser(user);
+  const [previewRepId, setPreviewRepId] = useState(allowedReps[0]?.id ?? reps[0].id);
+  const activeRepId = user.role === 'sales_rep' && user.repId ? user.repId : allowedReps.some((rep) => rep.id === previewRepId) ? previewRepId : allowedReps[0]?.id ?? previewRepId;
+  const activeRep = reps.find((rep) => rep.id === activeRepId) ?? allowedReps[0] ?? reps[0];
   const filtered = applyFilters(visibleOrdersForUser(orders, user), filters);
+  const repFiltered = filtered.filter((order) => order.repId === activeRepId);
+  const repRanking = rankReps(ordersInPeriod(orders, 'month'), repsForUser(user));
+  const rank = repRanking.findIndex((row) => row.id === activeRepId) + 1;
+  const points = pointTotal(repFiltered);
   return (
-    <PageSection title="Admin / All Sales" subtitle="Axel, Aleksander and Luis can see every dummy order, point value, sale type, status, and sales rep in the beta.">
-      <FiltersBar filters={filters} setFilters={setFilters} includeSearch user={user} showTeamFilter showRepFilter />
+    <PageSection title="All Sales" subtitle="Sales reps see their own orders. Team leaders and admins can review allowed reps, period performance, and the full sales table in one place.">
+      <div className="toolbar sales-summary">
+        {user.role !== 'sales_rep' && (
+          <label>
+            Preview rep
+            <select value={activeRepId} onChange={(event) => setPreviewRepId(event.target.value)}>
+              {allowedReps.map((rep) => (
+                <option key={rep.id} value={rep.id}>
+                  {shortRepName(rep.name)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <Kpi label="Selected Period Points" value={points} compact tone="good" />
+        <Kpi label="Point Budget" value={activeRep.monthlyPointBudget} compact />
+        <Kpi label="Monthly Rank" value={`#${rank || '-'}`} compact />
+      </div>
+      <FiltersBar filters={filters} setFilters={setFilters} includeSearch user={user} showTeamFilter={user.role !== 'sales_rep'} showRepFilter={user.role !== 'sales_rep'} includePeriodPicker />
+      <Card title={`${shortRepName(activeRep.name)} Period Progress`}>
+        <ProgressRow label="Amera Points" value={points} max={activeRep.monthlyPointBudget} detail={`${points}/${activeRep.monthlyPointBudget} points`} />
+      </Card>
       <div className="toolbar right">
         <button className="secondary" type="button" title="Placeholder for CSV/XLSX export">
           Export placeholder
@@ -594,6 +581,7 @@ function FiltersBar({
   user,
   showTeamFilter = true,
   showRepFilter = true,
+  includePeriodPicker = false,
 }: {
   filters: Filters;
   setFilters: (filters: Filters) => void;
@@ -601,12 +589,14 @@ function FiltersBar({
   user: User;
   showTeamFilter?: boolean;
   showRepFilter?: boolean;
+  includePeriodPicker?: boolean;
 }) {
   const update = (key: keyof Filters, value: string) => setFilters({ ...filters, [key]: value });
   const availableTeams = teamsForUser(user);
   const availableReps = repsForUser(user);
   return (
     <div className="filters">
+      {includePeriodPicker && <PeriodPicker filters={filters} setFilters={setFilters} />}
       <label>
         From
         <input type="date" value={filters.startDate} onChange={(event) => update('startDate', event.target.value)} />
@@ -671,6 +661,78 @@ function FiltersBar({
       )}
     </div>
   );
+}
+
+function PeriodPicker({ filters, setFilters }: { filters: Filters; setFilters: (filters: Filters) => void }) {
+  const [mode, setMode] = useState<PeriodMode>('custom');
+  const presets = periodPresets(mode);
+  const selected = presets.find((preset) => preset.startDate === filters.startDate && preset.endDate === filters.endDate)?.value ?? presets[0]?.value ?? '';
+
+  function updateMode(nextMode: PeriodMode) {
+    setMode(nextMode);
+    const nextPreset = periodPresets(nextMode)[0];
+    if (nextPreset) {
+      setFilters({ ...filters, startDate: nextPreset.startDate, endDate: nextPreset.endDate });
+    }
+  }
+
+  function updatePreset(value: string) {
+    const nextPreset = presets.find((preset) => preset.value === value);
+    if (nextPreset) {
+      setFilters({ ...filters, startDate: nextPreset.startDate, endDate: nextPreset.endDate });
+    }
+  }
+
+  return (
+    <>
+      <label>
+        View
+        <select value={mode} onChange={(event) => updateMode(event.target.value as PeriodMode)}>
+          <option value="custom">Custom dates</option>
+          <option value="week">Week</option>
+          <option value="month">Month</option>
+          <option value="year">Year</option>
+        </select>
+      </label>
+      {mode !== 'custom' && (
+        <label>
+          {mode === 'week' ? 'Select week' : mode === 'month' ? 'Select month' : 'Select year'}
+          <select value={selected} onChange={(event) => updatePreset(event.target.value)}>
+            {presets.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+    </>
+  );
+}
+
+function periodPresets(mode: PeriodMode): PeriodPreset[] {
+  if (mode === 'week') {
+    return [
+      { value: '2026-w25', label: 'Week 25: 15 Jun - 21 Jun 2026', startDate: '2026-06-15', endDate: '2026-06-21' },
+      { value: '2026-w24', label: 'Week 24: 08 Jun - 14 Jun 2026', startDate: '2026-06-08', endDate: '2026-06-14' },
+      { value: '2026-w23', label: 'Week 23: 01 Jun - 07 Jun 2026', startDate: '2026-06-01', endDate: '2026-06-07' },
+      { value: '2026-w22', label: 'Week 22: 25 May - 31 May 2026', startDate: '2026-05-25', endDate: '2026-05-31' },
+    ];
+  }
+  if (mode === 'month') {
+    return [
+      { value: '2026-06', label: 'June 2026', startDate: '2026-06-01', endDate: '2026-06-30' },
+      { value: '2026-05', label: 'May 2026', startDate: '2026-05-01', endDate: '2026-05-31' },
+      { value: '2026-04', label: 'April 2026', startDate: '2026-04-01', endDate: '2026-04-30' },
+    ];
+  }
+  if (mode === 'year') {
+    return [
+      { value: '2026', label: '2026', startDate: '2026-01-01', endDate: '2026-12-31' },
+      { value: '2025', label: '2025', startDate: '2025-01-01', endDate: '2025-12-31' },
+    ];
+  }
+  return [];
 }
 
 function OrdersTable({ orders: tableOrders, showRep = false }: { orders: SaleOrder[]; showRep?: boolean }) {

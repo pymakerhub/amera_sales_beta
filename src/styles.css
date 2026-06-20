@@ -241,7 +241,7 @@ h1 {
   border-radius: 4px;
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  grid-template-columns: repeat(8, minmax(130px, 1fr));
   padding: 14px;
 }
 
@@ -252,6 +252,10 @@ h1 {
 
 .toolbar.right {
   justify-content: flex-end;
+}
+
+.sales-summary {
+  align-items: stretch;
 }
 
 label {
@@ -334,7 +338,7 @@ select {
   border-radius: 4px;
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(520px, 1.4fr);
+  grid-template-columns: minmax(560px, 0.95fr) minmax(500px, 1.05fr);
   overflow: hidden;
 }
 
@@ -342,8 +346,9 @@ select {
   align-items: center;
   background: #f7f9fb;
   border-right: 1px solid var(--line);
-  display: grid;
-  justify-items: center;
+  display: flex;
+  gap: 28px;
+  justify-content: center;
   min-height: 360px;
   padding: 28px 22px;
 }
@@ -352,6 +357,7 @@ select {
   align-items: center;
   border-radius: 999px;
   display: flex;
+  flex: 0 0 300px;
   height: 300px;
   justify-content: center;
   position: relative;
@@ -402,24 +408,33 @@ select {
 
 .donut-legend {
   display: grid;
-  gap: 5px;
-  margin-top: -38px;
-  position: relative;
-  z-index: 2;
+  gap: 10px;
+  min-width: 190px;
 }
 
 .donut-legend span {
   align-items: center;
   color: #526174;
-  display: flex;
+  display: grid;
   font-size: 14px;
-  gap: 8px;
+  gap: 4px 8px;
+  grid-template-columns: 18px 1fr auto;
 }
 
 .donut-legend i {
   display: inline-block;
   height: 14px;
   width: 18px;
+}
+
+.donut-legend b {
+  color: var(--ink);
+}
+
+.donut-legend em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 800;
 }
 
 .legacy-table-wrap {
@@ -483,14 +498,6 @@ select {
   line-height: 28px;
   position: absolute;
   text-align: center;
-}
-
-.prediction-good {
-  color: #22b45f;
-}
-
-.prediction-warn {
-  color: var(--orange);
 }
 
 .overview-grid {
@@ -872,10 +879,11 @@ td span {
   .donut-panel {
     border-bottom: 1px solid var(--line);
     border-right: 0;
+    flex-wrap: wrap;
   }
 
   .filters {
-    grid-template-columns: repeat(3, minmax(130px, 1fr));
+    grid-template-columns: repeat(4, minmax(130px, 1fr));
   }
 }
 
@@ -922,8 +930,17 @@ td span {
   }
 
   .donut {
+    flex-basis: 250px;
     height: 250px;
     width: 250px;
+  }
+
+  .donut-panel {
+    display: grid;
+  }
+
+  .donut-legend {
+    width: 100%;
   }
 
   .donut::after {
