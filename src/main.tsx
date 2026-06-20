@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { orders, pointRules, reps, saleTypes, statuses, teams, users } from './data/mockData';
 import { Filters, SaleOrder, User } from './types';
@@ -18,18 +18,27 @@ import {
 } from './utils/metrics';
 import './styles.css';
 
-type Page = 'dashboard' | 'team-leader' | 'admin-sales' | 'leaderboard' | 'overview';
-type RankingRow = { label: string; value: number; meta: string; rank?: number; current?: boolean; divider?: boolean };
+type Page = 'dashboard' | 'team-leader' | 'admin-sales' | 'leaderboard' | 'records' | 'overview';
 type PeriodMode = 'custom' | 'week' | 'month' | 'year';
-type PeriodPreset = { value: string; label: string; startDate: string; endDate: string };
+type CarouselPeriod = 'yesterday' | 'week' | 'month' | 'year' | 'all';
 
 const navItems: { page: Page; label: string; roles: User['role'][] }[] = [
   { page: 'dashboard', label: 'Control Panel', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'admin-sales', label: 'All Sales', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'team-leader', label: 'Team Leader', roles: ['admin', 'team_leader'] },
   { page: 'leaderboard', label: 'Hall of Fame', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'records', label: 'All-Time Highs', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'overview', label: 'Current App Overview', roles: ['admin'] },
 ];
+
+const carouselPeriods: CarouselPeriod[] = ['yesterday', 'week', 'month', 'year', 'all'];
+const periodLabels: Record<CarouselPeriod, string> = {
+  yesterday: 'Yesterday',
+  week: 'Week',
+  month: 'Month',
+  year: 'Year',
+  all: 'All Time',
+};
 
 function allowedNavItems(user: User) {
   return navItems.filter((item) => item.roles.includes(user.role));
@@ -98,6 +107,7 @@ function App() {
         {safePage === 'team-leader' && <TeamLeader user={user} />}
         {safePage === 'admin-sales' && <AdminSales user={user} />}
         {safePage === 'leaderboard' && <Leaderboard user={user} />}
+        {safePage === 'records' && <AllTimeHighRecords />}
         {safePage === 'overview' && <Overview />}
       </main>
     </div>
@@ -461,41 +471,79 @@ function AdminSales({ user }: { user: User }) {
 }
 
 function Leaderboard({ user }: { user: User }) {
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState<CarouselPeriod>('yesterday');
   const visible = ordersInPeriod(orders, period);
   const fullRepRanking = rankReps(visible, reps);
   const teamRanking = rankTeams(visible, teams);
-  const records = allTimeHighs(orders, reps, teams);
-  const periodLabel = period === 'all' ? 'all time' : period === 'current' ? 'today' : `this ${period}`;
+  const periodLabel = periodLabels[period];
+  useCarouselPeriod(period, setPeriod);
+
   return (
-    <PageSection title="Hall of Fame" subtitle={`Hall of Fame (${periodLabel})`}>
-      <div className="period-tabs">
-        {['yesterday', 'current', 'week', 'month', 'year', 'all'].map((item) => (
-          <button key={item} className={period === item ? 'active' : ''} onClick={() => setPeriod(item)}>
-            {item === 'all' ? 'All time' : item}
-          </button>
-        ))}
-      </div>
+    <PageSection title="Hall of Fame" subtitle={`Carousel view: ${periodLabel}`}>
+      <CarouselTabs period={period} setPeriod={setPeriod} />
       <div className="hall-grid">
         {teamRanking.slice(0, 4).map((team) => {
           const rows = fullRepRanking.filter((rep) => rep.teamId === team.id).slice(0, 4);
           return <HallTeamCard key={team.id} title={team.name} rows={rows} currentRepId={user.repId} />;
         })}
       </div>
-      <Card title="All-Time High Records">
-        <div className="records-grid">
-          {records.map((record) => (
-            <div key={record.period} className="record-tile">
-              <span>{record.label}</span>
-              <strong>{record.topRep ? shortRepName(record.topRep.name) : '-'}</strong>
-              <small>{record.topRep?.points ?? 0} individual points</small>
-              <strong>{record.topTeam?.name ?? '-'}</strong>
-              <small>{record.topTeam?.points ?? 0} team points</small>
-            </div>
-          ))}
-        </div>
-      </Card>
     </PageSection>
+  );
+}
+
+function AllTimeHighRecords() {
+  const [period, setPeriod] = useState<CarouselPeriod>('yesterday');
+  const records = allTimeHighs(orders, reps, teams);
+  const record = records.find((item) => item.period === period);
+  useCarouselPeriod(period, setPeriod);
+
+  return (
+    <PageSection title="All-Time High Records" subtitle={`Carousel view: ${periodLabels[period]}`}>
+      <CarouselTabs period={period} setPeriod={setPeriod} />
+      <section className="records-carousel">
+        <div className="record-hero">
+          <span>{periodLabels[period]}</span>
+          <h3>Individual Record</h3>
+          <div className="record-person">
+            <Avatar name={record?.topRep?.name ?? 'No rep'} index={0} />
+            <div>
+              <strong>{record?.topRep ? shortRepName(record.topRep.name) : '-'}</strong>
+              <small>{record?.topRep?.points ?? 0} Amera Points</small>
+            </div>
+          </div>
+        </div>
+        <div className="record-hero team-record">
+          <span>{periodLabels[period]}</span>
+          <h3>Team Record</h3>
+          <div>
+            <strong>{record?.topTeam?.name ?? '-'}</strong>
+            <small>{record?.topTeam?.points ?? 0} Amera Points</small>
+          </div>
+        </div>
+      </section>
+    </PageSection>
+  );
+}
+
+function useCarouselPeriod(period: CarouselPeriod, setPeriod: (period: CarouselPeriod) => void) {
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const index = carouselPeriods.indexOf(period);
+      setPeriod(carouselPeriods[(index + 1) % carouselPeriods.length]);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, [period, setPeriod]);
+}
+
+function CarouselTabs({ period, setPeriod }: { period: CarouselPeriod; setPeriod: (period: CarouselPeriod) => void }) {
+  return (
+    <div className="period-tabs carousel-tabs">
+      {carouselPeriods.map((item) => (
+        <button key={item} className={period === item ? 'active' : ''} onClick={() => setPeriod(item)}>
+          {periodLabels[item]}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -594,17 +642,23 @@ function FiltersBar({
   const update = (key: keyof Filters, value: string) => setFilters({ ...filters, [key]: value });
   const availableTeams = teamsForUser(user);
   const availableReps = repsForUser(user);
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('custom');
+  const showCustomDates = !includePeriodPicker || periodMode === 'custom';
   return (
     <div className="filters">
-      {includePeriodPicker && <PeriodPicker filters={filters} setFilters={setFilters} />}
-      <label>
-        From
-        <input type="date" value={filters.startDate} onChange={(event) => update('startDate', event.target.value)} />
-      </label>
-      <label>
-        To
-        <input type="date" value={filters.endDate} onChange={(event) => update('endDate', event.target.value)} />
-      </label>
+      {includePeriodPicker && <PeriodPicker filters={filters} mode={periodMode} setFilters={setFilters} setMode={setPeriodMode} />}
+      {showCustomDates && (
+        <>
+          <label>
+            From
+            <input type="date" value={filters.startDate} onChange={(event) => update('startDate', event.target.value)} />
+          </label>
+          <label>
+            To
+            <input type="date" value={filters.endDate} onChange={(event) => update('endDate', event.target.value)} />
+          </label>
+        </>
+      )}
       {showTeamFilter && (
         <label>
           Team
@@ -663,24 +717,46 @@ function FiltersBar({
   );
 }
 
-function PeriodPicker({ filters, setFilters }: { filters: Filters; setFilters: (filters: Filters) => void }) {
-  const [mode, setMode] = useState<PeriodMode>('custom');
-  const presets = periodPresets(mode);
-  const selected = presets.find((preset) => preset.startDate === filters.startDate && preset.endDate === filters.endDate)?.value ?? presets[0]?.value ?? '';
+function PeriodPicker({
+  filters,
+  mode,
+  setFilters,
+  setMode,
+}: {
+  filters: Filters;
+  mode: PeriodMode;
+  setFilters: (filters: Filters) => void;
+  setMode: (mode: PeriodMode) => void;
+}) {
+  const [year, setYear] = useState('2026');
+  const [week, setWeek] = useState('25');
+  const [month, setMonth] = useState('06');
 
   function updateMode(nextMode: PeriodMode) {
     setMode(nextMode);
-    const nextPreset = periodPresets(nextMode)[0];
-    if (nextPreset) {
-      setFilters({ ...filters, startDate: nextPreset.startDate, endDate: nextPreset.endDate });
+    applyPeriod(nextMode, year, week, month);
+  }
+
+  function applyPeriod(nextMode: PeriodMode, nextYear: string, nextWeek: string, nextMonth: string) {
+    const bounds = periodBoundsFromPicker(nextMode, nextYear, nextWeek, nextMonth);
+    if (bounds) {
+      setFilters({ ...filters, startDate: bounds.startDate, endDate: bounds.endDate });
     }
   }
 
-  function updatePreset(value: string) {
-    const nextPreset = presets.find((preset) => preset.value === value);
-    if (nextPreset) {
-      setFilters({ ...filters, startDate: nextPreset.startDate, endDate: nextPreset.endDate });
-    }
+  function updateYear(nextYear: string) {
+    setYear(nextYear);
+    applyPeriod(mode, nextYear, week, month);
+  }
+
+  function updateWeek(nextWeek: string) {
+    setWeek(nextWeek);
+    applyPeriod(mode, year, nextWeek, month);
+  }
+
+  function updateMonth(nextMonth: string) {
+    setMonth(nextMonth);
+    applyPeriod(mode, year, week, nextMonth);
   }
 
   return (
@@ -696,11 +772,39 @@ function PeriodPicker({ filters, setFilters }: { filters: Filters; setFilters: (
       </label>
       {mode !== 'custom' && (
         <label>
-          {mode === 'week' ? 'Select week' : mode === 'month' ? 'Select month' : 'Select year'}
-          <select value={selected} onChange={(event) => updatePreset(event.target.value)}>
-            {presets.map((preset) => (
-              <option key={preset.value} value={preset.value}>
-                {preset.label}
+          Year
+          <select value={year} onChange={(event) => updateYear(event.target.value)}>
+            {['2026', '2025'].map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {mode === 'week' && (
+        <label>
+          Week
+          <select value={week} onChange={(event) => updateWeek(event.target.value)}>
+            {['25', '24', '23', '22'].map((item) => (
+              <option key={item} value={item}>
+                Week {item}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {mode === 'month' && (
+        <label>
+          Month
+          <select value={month} onChange={(event) => updateMonth(event.target.value)}>
+            {[
+              ['06', 'June'],
+              ['05', 'May'],
+              ['04', 'April'],
+            ].map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -710,29 +814,32 @@ function PeriodPicker({ filters, setFilters }: { filters: Filters; setFilters: (
   );
 }
 
-function periodPresets(mode: PeriodMode): PeriodPreset[] {
+function periodBoundsFromPicker(mode: PeriodMode, year: string, week: string, month: string): { startDate: string; endDate: string } | null {
   if (mode === 'week') {
-    return [
-      { value: '2026-w25', label: 'Week 25: 15 Jun - 21 Jun 2026', startDate: '2026-06-15', endDate: '2026-06-21' },
-      { value: '2026-w24', label: 'Week 24: 08 Jun - 14 Jun 2026', startDate: '2026-06-08', endDate: '2026-06-14' },
-      { value: '2026-w23', label: 'Week 23: 01 Jun - 07 Jun 2026', startDate: '2026-06-01', endDate: '2026-06-07' },
-      { value: '2026-w22', label: 'Week 22: 25 May - 31 May 2026', startDate: '2026-05-25', endDate: '2026-05-31' },
-    ];
+    const weekRanges: Record<string, Record<string, { startDate: string; endDate: string }>> = {
+      '2026': {
+        '25': { startDate: '2026-06-15', endDate: '2026-06-21' },
+        '24': { startDate: '2026-06-08', endDate: '2026-06-14' },
+        '23': { startDate: '2026-06-01', endDate: '2026-06-07' },
+        '22': { startDate: '2026-05-25', endDate: '2026-05-31' },
+      },
+      '2025': {
+        '25': { startDate: '2025-06-16', endDate: '2025-06-22' },
+        '24': { startDate: '2025-06-09', endDate: '2025-06-15' },
+        '23': { startDate: '2025-06-02', endDate: '2025-06-08' },
+        '22': { startDate: '2025-05-26', endDate: '2025-06-01' },
+      },
+    };
+    return weekRanges[year]?.[week] ?? null;
   }
   if (mode === 'month') {
-    return [
-      { value: '2026-06', label: 'June 2026', startDate: '2026-06-01', endDate: '2026-06-30' },
-      { value: '2026-05', label: 'May 2026', startDate: '2026-05-01', endDate: '2026-05-31' },
-      { value: '2026-04', label: 'April 2026', startDate: '2026-04-01', endDate: '2026-04-30' },
-    ];
+    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    return { startDate: `${year}-${month}-01`, endDate: `${year}-${month}-${String(lastDay).padStart(2, '0')}` };
   }
   if (mode === 'year') {
-    return [
-      { value: '2026', label: '2026', startDate: '2026-01-01', endDate: '2026-12-31' },
-      { value: '2025', label: '2025', startDate: '2025-01-01', endDate: '2025-12-31' },
-    ];
+    return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
   }
-  return [];
+  return null;
 }
 
 function OrdersTable({ orders: tableOrders, showRep = false }: { orders: SaleOrder[]; showRep?: boolean }) {
@@ -826,28 +933,6 @@ function ProgressRow({ label, value, max, detail }: { label: string; value: numb
         <i style={{ width: `${pct}%` }} />
       </div>
     </div>
-  );
-}
-
-function RankingCard({ title, rows }: { title: string; rows: RankingRow[] }) {
-  return (
-    <Card title={title}>
-      <ol className="ranking">
-        {rows.map((row, index) => (
-          <li key={`${row.label}-${row.rank ?? index}`} className={`${row.current ? 'current-rank' : ''} ${row.divider ? 'rank-divider' : ''}`}>
-            {row.divider ? (
-              <span>...</span>
-            ) : (
-              <>
-                <span>{row.rank ? `#${row.rank} ${row.label}` : row.label}</span>
-                <small>{row.meta}</small>
-                <strong>{row.value}</strong>
-              </>
-            )}
-          </li>
-        ))}
-      </ol>
-    </Card>
   );
 }
 

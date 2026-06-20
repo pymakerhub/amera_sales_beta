@@ -679,6 +679,18 @@ td span {
   color: #fff;
 }
 
+.carousel-tabs {
+  align-items: center;
+}
+
+.carousel-tabs::after {
+  color: var(--muted);
+  content: "Auto-rotates every 7 seconds";
+  font-size: 12px;
+  font-weight: 800;
+  margin-left: 6px;
+}
+
 .hall-grid {
   display: grid;
   gap: 18px;
@@ -751,6 +763,64 @@ td span {
   height: 44px;
   justify-content: center;
   width: 44px;
+}
+
+.records-carousel {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.record-hero {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: inset 0 5px 0 var(--blue);
+  display: grid;
+  gap: 18px;
+  min-height: 260px;
+  padding: 28px;
+}
+
+.record-hero > span {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.record-hero h3 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.record-hero strong {
+  display: block;
+  font-size: 34px;
+}
+
+.record-hero small {
+  color: var(--muted);
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.record-person {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+}
+
+.record-person .avatar {
+  font-size: 28px;
+  height: 68px;
+  width: 68px;
+}
+
+.team-record {
+  box-shadow: inset 0 5px 0 #8ba000;
 }
 
 .ranking {
@@ -911,7 +981,8 @@ td span {
   .overview-grid,
   .rules-grid,
   .records-grid,
-  .hall-grid {
+  .hall-grid,
+  .records-carousel {
     display: grid;
     grid-template-columns: 1fr;
   }
@@ -967,6 +1038,12 @@ td span {
     font-size: 17px;
     height: 36px;
     width: 36px;
+  }
+
+  .carousel-tabs::after {
+    display: block;
+    flex-basis: 100%;
+    margin-left: 0;
   }
 }
 
