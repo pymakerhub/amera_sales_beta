@@ -768,7 +768,7 @@ td span {
 .records-carousel {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .record-hero {

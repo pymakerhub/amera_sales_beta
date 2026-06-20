@@ -107,7 +107,7 @@ function App() {
         {safePage === 'team-leader' && <TeamLeader user={user} />}
         {safePage === 'admin-sales' && <AdminSales user={user} />}
         {safePage === 'leaderboard' && <Leaderboard user={user} />}
-        {safePage === 'records' && <AllTimeHighRecords />}
+        {safePage === 'records' && <AllTimeHighRecords user={user} />}
         {safePage === 'overview' && <Overview />}
       </main>
     </div>
@@ -472,9 +472,12 @@ function AdminSales({ user }: { user: User }) {
 
 function Leaderboard({ user }: { user: User }) {
   const [period, setPeriod] = useState<CarouselPeriod>('yesterday');
-  const visible = ordersInPeriod(orders, period);
-  const fullRepRanking = rankReps(visible, reps);
-  const teamRanking = rankTeams(visible, teams);
+  const scopedTeams = teamsForUser(user);
+  const scopedReps = repsForUser(user);
+  const scopedTeamIds = scopedTeams.map((team) => team.id);
+  const visible = ordersInPeriod(orders, period).filter((order) => user.role === 'admin' || scopedTeamIds.includes(order.teamId));
+  const fullRepRanking = rankReps(visible, scopedReps);
+  const teamRanking = rankTeams(visible, scopedTeams);
   const periodLabel = periodLabels[period];
   useCarouselPeriod(period, setPeriod);
 
@@ -482,7 +485,7 @@ function Leaderboard({ user }: { user: User }) {
     <PageSection title="Hall of Fame" subtitle={`Carousel view: ${periodLabel}`}>
       <CarouselTabs period={period} setPeriod={setPeriod} />
       <div className="hall-grid">
-        {teamRanking.slice(0, 4).map((team) => {
+        {(user.role === 'admin' ? teamRanking.slice(0, 4) : scopedTeams).map((team) => {
           const rows = fullRepRanking.filter((rep) => rep.teamId === team.id).slice(0, 4);
           return <HallTeamCard key={team.id} title={team.name} rows={rows} currentRepId={user.repId} />;
         })}
@@ -491,9 +494,13 @@ function Leaderboard({ user }: { user: User }) {
   );
 }
 
-function AllTimeHighRecords() {
+function AllTimeHighRecords({ user }: { user: User }) {
   const [period, setPeriod] = useState<CarouselPeriod>('yesterday');
-  const records = allTimeHighs(orders, reps, teams);
+  const scopedTeams = teamsForUser(user);
+  const scopedReps = repsForUser(user);
+  const scopedTeamIds = scopedTeams.map((team) => team.id);
+  const scopedOrders = user.role === 'admin' ? orders : orders.filter((order) => scopedTeamIds.includes(order.teamId));
+  const records = allTimeHighs(scopedOrders, scopedReps, scopedTeams);
   const record = records.find((item) => item.period === period);
   useCarouselPeriod(period, setPeriod);
 
@@ -512,14 +519,16 @@ function AllTimeHighRecords() {
             </div>
           </div>
         </div>
-        <div className="record-hero team-record">
-          <span>{periodLabels[period]}</span>
-          <h3>Team Record</h3>
-          <div>
-            <strong>{record?.topTeam?.name ?? '-'}</strong>
-            <small>{record?.topTeam?.points ?? 0} Amera Points</small>
+        {user.role === 'admin' && (
+          <div className="record-hero team-record">
+            <span>{periodLabels[period]}</span>
+            <h3>Team Record</h3>
+            <div>
+              <strong>{record?.topTeam?.name ?? '-'}</strong>
+              <small>{record?.topTeam?.points ?? 0} Amera Points</small>
+            </div>
           </div>
-        </div>
+        )}
       </section>
     </PageSection>
   );
