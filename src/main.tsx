@@ -74,32 +74,31 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
             <img src="./amera-logo.svg" alt="Amera" />
           </div>
-          <div>
-            <strong>Amera</strong>
+          <div className="brand-wordmark" aria-label="Amera Salesboard">
+            <strong>AMERA</strong>
             <span>Salesboard beta</span>
           </div>
         </div>
-        <nav>
+        <nav className="main-nav">
           {visibleNav.map((item) => (
             <button key={item.page} className={safePage === item.page ? 'active' : ''} onClick={() => setPage(item.page)}>
               {item.label}
             </button>
           ))}
         </nav>
-        <div className="role-card">
-          <span>Signed in as</span>
-          <strong>{shortRepName(user.name)}</strong>
+        <div className="user-strip">
+          <span>{shortRepName(user.name)}</span>
           <small>{user.role.replace('_', ' ')}</small>
           <button className="ghost" onClick={logout}>
             Log out
           </button>
         </div>
-      </aside>
+      </header>
       <main>
         <Header user={user} />
         {safePage === 'dashboard' && <Dashboard user={user} />}
@@ -135,8 +134,8 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
           <div className="brand-mark">
             <img src="./amera-logo.svg" alt="Amera" />
           </div>
-          <div>
-            <strong>Amera Salesboard</strong>
+          <div className="brand-wordmark" aria-label="Amera Salesboard">
+            <strong>AMERA</strong>
             <span>Beta reporting demo</span>
           </div>
         </div>
@@ -162,7 +161,7 @@ function Header({ user }: { user: User }) {
   return (
     <header className="page-header">
       <div>
-        <p className="eyebrow">Static GitHub Pages beta</p>
+        <p className="eyebrow">Amera beta control panel</p>
         <h1>Sales reporting cockpit</h1>
       </div>
       <div className="access-strip">
