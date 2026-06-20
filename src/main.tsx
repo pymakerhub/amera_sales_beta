@@ -22,7 +22,7 @@ type Page = 'dashboard' | 'my-sales' | 'team-leader' | 'admin-sales' | 'leaderbo
 type RankingRow = { label: string; value: number; meta: string; rank?: number; current?: boolean; divider?: boolean };
 
 const navItems: { page: Page; label: string; roles: User['role'][] }[] = [
-  { page: 'dashboard', label: 'Dashboard', roles: ['admin', 'team_leader', 'sales_rep'] },
+  { page: 'dashboard', label: 'Control Panel', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'my-sales', label: 'My Sales', roles: ['admin', 'team_leader', 'sales_rep'] },
   { page: 'team-leader', label: 'Team Leader', roles: ['admin', 'team_leader'] },
   { page: 'admin-sales', label: 'All Sales', roles: ['admin', 'team_leader'] },
@@ -75,15 +75,7 @@ function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">
-            <img src="./amera-logo.svg" alt="Amera" />
-          </div>
-          <div className="brand-wordmark" aria-label="Amera Salesboard">
-            <strong>AMERA</strong>
-            <span>Salesboard beta</span>
-          </div>
-        </div>
+        <BrandLogo caption="Salesboard beta" />
         <nav className="main-nav">
           {visibleNav.map((item) => (
             <button key={item.page} className={safePage === item.page ? 'active' : ''} onClick={() => setPage(item.page)}>
@@ -130,15 +122,7 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
   return (
     <main className="login-page">
       <section className="login-panel">
-        <div className="brand login-brand">
-          <div className="brand-mark">
-            <img src="./amera-logo.svg" alt="Amera" />
-          </div>
-          <div className="brand-wordmark" aria-label="Amera Salesboard">
-            <strong>AMERA</strong>
-            <span>Beta reporting demo</span>
-          </div>
-        </div>
+        <BrandLogo caption="Beta reporting demo" login />
         <form onSubmit={submit}>
           <label>
             Username
@@ -154,6 +138,15 @@ function LoginPage({ onLogin }: { onLogin: (user: User) => void }) {
         <p className="demo-note">Mock login for beta testing only. Credentials are documented in the README, not shown here.</p>
       </section>
     </main>
+  );
+}
+
+function BrandLogo({ caption, login = false }: { caption: string; login?: boolean }) {
+  return (
+    <div className={`brand ${login ? 'login-brand' : ''}`}>
+      <img className="amera-wordmark" src="./amera-wordmark.svg" alt="Amera" />
+      <span>{caption}</span>
+    </div>
   );
 }
 
@@ -190,7 +183,7 @@ function Dashboard({ user }: { user: User }) {
         : 'Admin dashboard includes all dummy teams and sales reps.';
 
   return (
-    <PageSection title="Main Dashboard" subtitle={dashboardSubtitle}>
+    <PageSection title="Control Panel" subtitle={dashboardSubtitle}>
       <FiltersBar filters={filters} setFilters={setFilters} includeSearch={false} user={user} showTeamFilter={user.role !== 'sales_rep'} showRepFilter={user.role !== 'sales_rep'} />
       <div className="kpi-grid">
         <Kpi label="Amera Points" value={metrics.points} tone="good" />
@@ -209,11 +202,7 @@ function Dashboard({ user }: { user: User }) {
             })}
           </Card>
         ) : (
-          <Card title="Team Point Progress">
-            {rankedTeams.map((team) => (
-              <ProgressRow key={team.id} label={team.name} value={team.points} max={team.goal} detail={`${team.points}/${team.goal} points`} />
-            ))}
-          </Card>
+          <TeamControlPanel teams={rankedTeams} scopedReps={scopedReps} />
         )}
         {user.role !== 'sales_rep' && (
           <Card title="Rep Point Progress">
@@ -246,6 +235,109 @@ function Dashboard({ user }: { user: User }) {
         </Card>
       </div>
     </PageSection>
+  );
+}
+
+function TeamControlPanel({
+  teams: rankedTeams,
+  scopedReps,
+}: {
+  teams: ReturnType<typeof rankTeams>;
+  scopedReps: ReturnType<typeof repsForUser>;
+}) {
+  const totalGoal = rankedTeams.reduce((sum, team) => sum + team.goal, 0);
+  const totalPoints = rankedTeams.reduce((sum, team) => sum + team.points, 0);
+  const totalProgress = Math.min(100, Math.round((totalPoints / Math.max(totalGoal, 1)) * 100));
+  const colors = ['#2ff07f', '#58bde6', '#f23dc3', '#ffc655'];
+  const slices = rankedTeams.map((team) => Math.max(4, Math.round((team.goal / Math.max(totalGoal, 1)) * 100)));
+
+  return (
+    <section className="legacy-control">
+      <div className="donut-panel">
+        <DonutGoal value={totalProgress} slices={slices} colors={colors} />
+        <div className="donut-legend">
+          {rankedTeams.map((team, index) => (
+            <span key={team.id}>
+              <i style={{ background: colors[index % colors.length] }} />
+              {team.name} {Math.round((team.goal / Math.max(totalGoal, 1)) * 100)}%
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="legacy-table-wrap">
+        <table className="legacy-table">
+          <thead>
+            <tr>
+              <th>Teams</th>
+              <th>Members</th>
+              <th>Goal</th>
+              <th>Sales</th>
+              <th>Progress</th>
+              <th>Prediction</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rankedTeams.map((team) => {
+              const progress = Math.min(100, Math.round((team.points / Math.max(team.goal, 1)) * 100));
+              const members = scopedReps.filter((rep) => rep.teamId === team.id).map((rep) => rep.name.split(' ')[0]);
+              const prediction = Math.round(team.points * 1.42);
+              return (
+                <tr key={team.id}>
+                  <td>
+                    <strong>{team.name}</strong>
+                  </td>
+                  <td>{members.join(', ')}</td>
+                  <td>
+                    <strong>{team.goal}</strong>
+                  </td>
+                  <td>
+                    {team.points} <span>({Math.round((team.points / 19) * 10) / 10}/day)</span>
+                  </td>
+                  <td>
+                    <ProgressPill value={progress} />
+                  </td>
+                  <td>
+                    <strong className={prediction >= team.goal ? 'prediction-good' : 'prediction-warn'}>{prediction}</strong>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function DonutGoal({ value, slices, colors }: { value: number; slices: number[]; colors: string[] }) {
+  let cursor = 0;
+  const gradient = slices
+    .map((slice, index) => {
+      const start = cursor;
+      cursor += slice;
+      return `${colors[index % colors.length]} ${start}% ${cursor}%`;
+    })
+    .join(', ');
+  return (
+    <div className="donut" style={{ background: `conic-gradient(${gradient})` }}>
+      <div className="donut-core">
+        <strong>Total Goal</strong>
+        <span className="donut-meter">
+          <i style={{ width: `${value}%` }} />
+        </span>
+        <b>{value}%</b>
+      </div>
+    </div>
+  );
+}
+
+function ProgressPill({ value }: { value: number }) {
+  const visibleValue = value > 0 ? Math.max(value, 24) : 0;
+  return (
+    <span className="progress-pill">
+      <i style={{ width: `${visibleValue}%` }} />
+      <b>{value}%</b>
+    </span>
   );
 }
 
@@ -387,28 +479,9 @@ function Leaderboard({ user }: { user: User }) {
   const fullRepRanking = rankReps(visible, reps);
   const teamRanking = rankTeams(visible, teams);
   const records = allTimeHighs(orders, reps, teams);
-  const currentRepRankIndex = user.repId ? fullRepRanking.findIndex((row) => row.id === user.repId) : -1;
-  const repRows: RankingRow[] = fullRepRanking.slice(0, 10).map((row, index) => ({
-    label: shortRepName(row.name),
-    value: row.points,
-    meta: `${teamName(teams, row.teamId)} · ${row.confirmed} sales`,
-    rank: index + 1,
-    current: row.id === user.repId,
-  }));
-
-  if (user.role === 'sales_rep' && currentRepRankIndex >= 10) {
-    const ownRow = fullRepRanking[currentRepRankIndex];
-    repRows.push({ label: '...', value: 0, meta: '', divider: true });
-    repRows.push({
-      label: shortRepName(ownRow.name),
-      value: ownRow.points,
-      meta: `${teamName(teams, ownRow.teamId)} · ${ownRow.confirmed} sales`,
-      rank: currentRepRankIndex + 1,
-      current: true,
-    });
-  }
+  const periodLabel = period === 'all' ? 'all time' : period === 'current' ? 'today' : `this ${period}`;
   return (
-    <PageSection title="Leaderboard / Hall of Fame" subtitle="Competitions and leaderboard positions are measured by Amera Points. Public rep names show first name and last initial only.">
+    <PageSection title="Hall of Fame" subtitle={`Hall of Fame (${periodLabel})`}>
       <div className="period-tabs">
         {['yesterday', 'current', 'week', 'month', 'year', 'all'].map((item) => (
           <button key={item} className={period === item ? 'active' : ''} onClick={() => setPeriod(item)}>
@@ -416,9 +489,11 @@ function Leaderboard({ user }: { user: User }) {
           </button>
         ))}
       </div>
-      <div className="split">
-        <RankingCard title="Individuals" rows={repRows} />
-        <RankingCard title="Teams" rows={teamRanking.map((row, index) => ({ label: row.name, value: row.points, meta: `${row.confirmed} sales · ${row.qcOpen} QC open`, rank: index + 1 }))} />
+      <div className="hall-grid">
+        {teamRanking.slice(0, 4).map((team) => {
+          const rows = fullRepRanking.filter((rep) => rep.teamId === team.id).slice(0, 4);
+          return <HallTeamCard key={team.id} title={team.name} rows={rows} currentRepId={user.repId} />;
+        })}
       </div>
       <Card title="All-Time High Records">
         <div className="records-grid">
@@ -435,6 +510,57 @@ function Leaderboard({ user }: { user: User }) {
       </Card>
     </PageSection>
   );
+}
+
+function HallTeamCard({
+  title,
+  rows,
+  currentRepId,
+}: {
+  title: string;
+  rows: ReturnType<typeof rankReps>;
+  currentRepId?: string;
+}) {
+  return (
+    <section className="hall-card">
+      <h3>{title}</h3>
+      <ol>
+        {rows.map((row, index) => (
+          <li key={row.id} className={row.id === currentRepId ? 'current-rank' : ''}>
+            <strong>{ordinal(index + 1)}</strong>
+            <Avatar name={row.name} index={index} />
+            <span>{shortRepName(row.name)}</span>
+            <b>{row.points}</b>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function Avatar({ name, index }: { name: string; index: number }) {
+  const palette = ['#5a9dce', '#955fc6', '#55ac87', '#c98558'];
+  return (
+    <i className="avatar" style={{ background: palette[index % palette.length] }}>
+      {initials(name)}
+    </i>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function ordinal(value: number) {
+  if (value === 1) return '1st';
+  if (value === 2) return '2nd';
+  if (value === 3) return '3rd';
+  return `${value}th`;
 }
 
 function Overview() {

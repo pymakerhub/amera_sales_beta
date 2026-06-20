@@ -17,6 +17,9 @@
   --nav-2: #314258;
   --purple: #9a3fb0;
   --yellow: #d9ea00;
+  --lime: #dfff00;
+  --magenta: #f23dc3;
+  --orange: #ffad42;
 }
 
 * {
@@ -73,42 +76,17 @@ button:hover {
   padding: 7px 18px;
 }
 
-.brand-mark {
-  align-items: center;
-  background: #132234;
-  border-radius: 4px;
-  color: #fff;
-  display: flex;
+.amera-wordmark {
+  display: block;
   height: 34px;
-  justify-content: center;
-  overflow: hidden;
-  width: 34px;
+  width: 146px;
 }
 
-.brand-mark img {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
-.brand-wordmark strong,
-.brand-wordmark span {
-  display: block;
-}
-
-.brand-wordmark strong {
-  color: #0f86d5;
-  font-size: 20px;
-  letter-spacing: 0;
-  line-height: 1;
-}
-
-.brand-wordmark span {
+.brand span {
   color: #aeb8c6;
   font-size: 11px;
   font-weight: 800;
   line-height: 1.1;
-  margin-top: 2px;
   text-transform: uppercase;
 }
 
@@ -350,6 +328,171 @@ select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.legacy-control {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(520px, 1.4fr);
+  overflow: hidden;
+}
+
+.donut-panel {
+  align-items: center;
+  background: #f7f9fb;
+  border-right: 1px solid var(--line);
+  display: grid;
+  justify-items: center;
+  min-height: 360px;
+  padding: 28px 22px;
+}
+
+.donut {
+  align-items: center;
+  border-radius: 999px;
+  display: flex;
+  height: 300px;
+  justify-content: center;
+  position: relative;
+  width: 300px;
+}
+
+.donut::after {
+  background: #f7f9fb;
+  border-radius: 999px;
+  content: "";
+  height: 176px;
+  position: absolute;
+  width: 176px;
+}
+
+.donut-core {
+  align-items: center;
+  color: var(--ink);
+  display: grid;
+  justify-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.donut-core strong {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
+
+.donut-core b {
+  font-size: 38px;
+  margin-top: 10px;
+}
+
+.donut-meter {
+  background: #d9dee7;
+  border: 1px solid #aeb7c4;
+  display: block;
+  height: 28px;
+  width: 118px;
+}
+
+.donut-meter i {
+  background: var(--orange);
+  display: block;
+  height: 100%;
+}
+
+.donut-legend {
+  display: grid;
+  gap: 5px;
+  margin-top: -38px;
+  position: relative;
+  z-index: 2;
+}
+
+.donut-legend span {
+  align-items: center;
+  color: #526174;
+  display: flex;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.donut-legend i {
+  display: inline-block;
+  height: 14px;
+  width: 18px;
+}
+
+.legacy-table-wrap {
+  overflow: auto;
+}
+
+.legacy-table {
+  min-width: 760px;
+}
+
+.legacy-table th {
+  background: #747b84;
+  border-right: 1px solid #c8ced8;
+  color: #fff;
+  font-size: 15px;
+  padding: 14px 12px;
+  text-transform: none;
+}
+
+.legacy-table td {
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  padding: 18px 12px;
+}
+
+.legacy-table tbody tr:nth-child(even) td {
+  background: #f4f6f9;
+}
+
+.legacy-table tbody tr:hover td {
+  background: #edf7fb;
+}
+
+.legacy-table td span {
+  color: var(--muted);
+  display: inline;
+}
+
+.progress-pill {
+  background: #e1e5eb;
+  border: 1px solid #aab2bf;
+  display: block;
+  height: 28px;
+  min-width: 104px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-pill i {
+  background: #ff4e57;
+  border-radius: 7px;
+  display: block;
+  height: 100%;
+}
+
+.progress-pill b {
+  color: #fff;
+  font-size: 13px;
+  inset: 0;
+  line-height: 28px;
+  position: absolute;
+  text-align: center;
+}
+
+.prediction-good {
+  color: #22b45f;
+}
+
+.prediction-warn {
+  color: var(--orange);
+}
+
 .overview-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -529,6 +672,80 @@ td span {
   color: #fff;
 }
 
+.hall-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hall-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hall-card h3 {
+  background: #747b84;
+  color: #fff;
+  font-size: 22px;
+  margin: 0;
+  padding: 12px 18px;
+}
+
+.hall-card ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hall-card li {
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #15a8b6;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 72px 54px 1fr auto;
+  min-height: 62px;
+  padding: 7px 18px;
+}
+
+.hall-card li:nth-child(even) {
+  background: #f8fafc;
+}
+
+.hall-card li.current-rank {
+  box-shadow: inset 5px 0 0 var(--blue);
+}
+
+.hall-card li > strong {
+  font-size: 25px;
+}
+
+.hall-card li > span {
+  font-size: 18px;
+}
+
+.hall-card li > b {
+  color: #9bb000;
+  font-size: 28px;
+}
+
+.avatar {
+  align-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px #96a0ad;
+  color: #fff;
+  display: flex;
+  font-size: 21px;
+  font-style: normal;
+  font-weight: 900;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
 .ranking {
   display: grid;
   gap: 10px;
@@ -577,7 +794,7 @@ td span {
 
 .login-page {
   align-items: center;
-  background: #eef2f6;
+  background: radial-gradient(circle at 50% 0%, #f8fbff, #e7edf4 70%);
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -595,8 +812,17 @@ td span {
 }
 
 .login-brand {
+  display: grid;
+  justify-items: center;
   color: var(--ink);
   margin-bottom: 24px;
+  padding: 0;
+  text-align: center;
+}
+
+.login-brand .amera-wordmark {
+  height: 56px;
+  width: 238px;
 }
 
 .login-brand span {
@@ -634,8 +860,18 @@ td span {
   .kpi-grid,
   .overview-grid,
   .rules-grid,
-  .records-grid {
+  .records-grid,
+  .hall-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .legacy-control {
+    grid-template-columns: 1fr;
+  }
+
+  .donut-panel {
+    border-bottom: 1px solid var(--line);
+    border-right: 0;
   }
 
   .filters {
@@ -666,7 +902,8 @@ td span {
   .split,
   .overview-grid,
   .rules-grid,
-  .records-grid {
+  .records-grid,
+  .hall-grid {
     display: grid;
     grid-template-columns: 1fr;
   }
@@ -678,6 +915,41 @@ td span {
   .filters,
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  .legacy-control {
+    grid-template-columns: 1fr;
+  }
+
+  .donut {
+    height: 250px;
+    width: 250px;
+  }
+
+  .donut::after {
+    height: 148px;
+    width: 148px;
+  }
+
+  .hall-card li {
+    gap: 10px;
+    grid-template-columns: 56px 44px 1fr auto;
+    padding: 7px 12px;
+  }
+
+  .hall-card li > strong,
+  .hall-card li > b {
+    font-size: 22px;
+  }
+
+  .hall-card li > span {
+    font-size: 15px;
+  }
+
+  .avatar {
+    font-size: 17px;
+    height: 36px;
+    width: 36px;
   }
 }
 
