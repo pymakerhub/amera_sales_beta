@@ -58,5 +58,6 @@ export type Filters = {
   repId: string;
   status: string;
   saleType: string;
+  marketing: string;
   search: string;
 };

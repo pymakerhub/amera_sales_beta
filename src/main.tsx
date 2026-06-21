@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { orders, pointRules, reps, saleTypes, statuses, teams, users } from './data/mockData';
+import { marketingTypes, orders, pointRules, reps, saleTypes, statuses, teams, users } from './data/mockData';
 import { Filters, SaleOrder, User } from './types';
 import {
   allTimeHighs,
@@ -13,7 +13,6 @@ import {
   rankTeams,
   repName,
   shortRepName,
-  teamName,
   visibleOrdersForUser,
 } from './utils/metrics';
 import './styles.css';
@@ -477,19 +476,13 @@ function Leaderboard({ user }: { user: User }) {
   const scopedTeamIds = scopedTeams.map((team) => team.id);
   const visible = ordersInPeriod(orders, period).filter((order) => user.role === 'admin' || scopedTeamIds.includes(order.teamId));
   const fullRepRanking = rankReps(visible, scopedReps);
-  const teamRanking = rankTeams(visible, scopedTeams);
   const periodLabel = periodLabels[period];
   useCarouselPeriod(period, setPeriod);
 
   return (
     <PageSection title="Hall of Fame" subtitle={`Carousel view: ${periodLabel}`}>
       <CarouselTabs period={period} setPeriod={setPeriod} />
-      <div className="hall-grid">
-        {(user.role === 'admin' ? teamRanking.slice(0, 4) : scopedTeams).map((team) => {
-          const rows = fullRepRanking.filter((rep) => rep.teamId === team.id).slice(0, 4);
-          return <HallTeamCard key={team.id} title={team.name} rows={rows} currentRepId={user.repId} />;
-        })}
-      </div>
+      <HallIndividualList title={user.role === 'admin' ? 'All Teams' : scopedTeams.map((team) => team.name).join(', ')} rows={fullRepRanking.slice(0, 12)} currentRepId={user.repId} />
     </PageSection>
   );
 }
@@ -556,7 +549,7 @@ function CarouselTabs({ period, setPeriod }: { period: CarouselPeriod; setPeriod
   );
 }
 
-function HallTeamCard({
+function HallIndividualList({
   title,
   rows,
   currentRepId,
@@ -566,7 +559,7 @@ function HallTeamCard({
   currentRepId?: string;
 }) {
   return (
-    <section className="hall-card">
+    <section className="hall-card hall-list">
       <h3>{title}</h3>
       <ol>
         {rows.map((row, index) => (
@@ -712,6 +705,17 @@ function FiltersBar({
           {saleTypes.map((saleType) => (
             <option key={saleType} value={saleType}>
               {saleType}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Marketing
+        <select value={filters.marketing} onChange={(event) => update('marketing', event.target.value)}>
+          <option value="all">All marketing</option>
+          {marketingTypes.map((marketing) => (
+            <option key={marketing} value={marketing}>
+              {marketing}
             </option>
           ))}
         </select>

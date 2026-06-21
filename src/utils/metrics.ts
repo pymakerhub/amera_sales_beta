@@ -9,6 +9,7 @@ export const initialFilters: Filters = {
   repId: 'all',
   status: 'all',
   saleType: 'all',
+  marketing: 'all',
   search: '',
 };
 
@@ -27,6 +28,7 @@ export function applyFilters(orders: SaleOrder[], filters: Filters): SaleOrder[]
     const repMatch = filters.repId === 'all' || order.repId === filters.repId;
     const statusMatch = filters.status === 'all' || order.status === filters.status;
     const saleTypeMatch = filters.saleType === 'all' || order.saleType === filters.saleType;
+    const marketingMatch = filters.marketing === 'all' || order.marketing === filters.marketing;
     const searchMatch =
       !search ||
       [
@@ -44,7 +46,7 @@ export function applyFilters(orders: SaleOrder[], filters: Filters): SaleOrder[]
         .join(' ')
         .toLowerCase()
         .includes(search);
-    return inDate && teamMatch && repMatch && statusMatch && saleTypeMatch && searchMatch;
+    return inDate && teamMatch && repMatch && statusMatch && saleTypeMatch && marketingMatch && searchMatch;
   });
 }
 

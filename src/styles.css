@@ -63,7 +63,7 @@ button:hover {
   color: #f8fbff;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  min-height: 50px;
+  min-height: 58px;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -107,9 +107,9 @@ button:hover {
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 0;
   color: #e7edf5;
-  font-size: 12px;
-  min-height: 50px;
-  padding: 0 14px;
+  font-size: 14px;
+  min-height: 58px;
+  padding: 0 20px;
   white-space: nowrap;
 }
 
@@ -691,12 +691,6 @@ td span {
   margin-left: 6px;
 }
 
-.hall-grid {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
 .hall-card {
   background: #fff;
   border: 1px solid var(--line);
@@ -727,6 +721,14 @@ td span {
   grid-template-columns: 72px 54px 1fr auto;
   min-height: 62px;
   padding: 7px 18px;
+}
+
+.hall-list {
+  max-width: 980px;
+}
+
+.hall-list li {
+  grid-template-columns: 86px 58px 1fr auto;
 }
 
 .hall-card li:nth-child(even) {
@@ -937,8 +939,7 @@ td span {
   .kpi-grid,
   .overview-grid,
   .rules-grid,
-  .records-grid,
-  .hall-grid {
+  .records-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -981,7 +982,6 @@ td span {
   .overview-grid,
   .rules-grid,
   .records-grid,
-  .hall-grid,
   .records-carousel {
     display: grid;
     grid-template-columns: 1fr;
